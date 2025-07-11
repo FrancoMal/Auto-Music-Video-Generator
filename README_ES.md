@@ -66,7 +66,7 @@ ACE-Proyect/
 ### Requisitos del Sistema
 
 **Hardware Recomendado:**
-- **GPU**: GPU NVIDIA con soporte NVENC (GTX 1660 o superior)
+- **GPU**: GPU NVIDIA con soporte NVENC (recomendada para máximo rendimiento)
 - **RAM**: 16GB o más (32GB recomendado para proyectos grandes)
 - **CPU**: Procesador multi-core moderno (Intel i5/AMD Ryzen 5 o superior)
 - **Almacenamiento**: 10GB libres para archivos temporales
@@ -423,7 +423,7 @@ Si persisten los problemas:
 
 ### ⚡ Rendimiento Comparativo
 
-| Métrica | GPU (RTX 4070Ti) | CPU (i5 14va gen) |
+| Métrica | GPU (NVIDIA con NVENC) | CPU (moderno) |
 |---------|-------------------|-------------------|
 | **Tiempo (10 canciones)** | 1-2 minutos | 15-30 minutos |
 | **Calidad** | Máxima (15M) | Estándar (5M) |
@@ -482,7 +482,7 @@ Si persisten los problemas:
 
 ## 🎉 Resultados Esperados
 
-Con el setup recomendado (RTX 4070Ti + 32GB RAM + i5 14va gen):
+Con el setup recomendado (GPU NVIDIA + 32GB RAM + CPU moderno):
 - **⏱️ Tiempo**: 1-2 minutos para 10 canciones
 - **📈 Calidad**: Máxima (15M bitrate, 1080p30)
 - **🎨 Visualizador**: Espejo horizontal con color configurable
