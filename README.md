@@ -1,77 +1,78 @@
-# 🎵 Generador de Videos Musicales Optimizado
+# 🎵 Optimized Music Video Generator
 
-Una aplicación completa y optimizada para crear videos musicales con visualizaciones de audio espectaculares, aprovechando al máximo hardware moderno con aceleración GPU.
+A complete and optimized application for creating spectacular music videos with audio visualizations, leveraging modern hardware with GPU acceleration.
 
-## 🌟 Características Principales
+## 🌟 Key Features
 
-### 🚀 **Rendimiento Optimizado**
-- **Aceleración GPU**: Soporte para GPUs NVIDIA con codificación H.264 por hardware (NVENC)
-- **Procesamiento rápido**: 1-2 minutos de procesamiento vs. horas del método tradicional
-- **Memoria optimizada**: Uso eficiente de RAM para procesamiento paralelo
-- **FFmpeg puro**: Elimina bottlenecks de procesamiento frame-by-frame
+### 🚀 **Performance Optimized**
+- **GPU Acceleration**: NVIDIA GPU support with hardware H.264 encoding (NVENC)
+- **Lightning Fast**: 1-2 minutes processing vs. hours with traditional methods
+- **Memory Optimized**: Efficient RAM usage for parallel processing
+- **Pure FFmpeg**: Eliminates frame-by-frame processing bottlenecks
 
-### 🎨 **Visualizador Avanzado**
-- **Efecto espejo horizontal**: Visualizador simétrico desde el centro hacia afuera
-- **Posicionamiento preciso**: Configurable a pixels exactos desde cualquier borde
-- **Colores personalizables**: 9 colores disponibles con configuración simple
-- **Ancho completo**: Se extiende por toda la pantalla (1920px)
+### 🎨 **Advanced Visualizer**
+- **Horizontal Mirror Effect**: Symmetric visualizer from center outward
+- **Precise Positioning**: Pixel-perfect configuration from any edge
+- **Customizable Colors**: 9 available colors with simple configuration
+- **Full Width**: Spans entire screen width (1920px)
 
-### 🎵 **Audio Profesional**
-- **Múltiples formatos**: MP3, WAV, FLAC, M4A, OGG
-- **Calidad alta**: 320kbps AAC de salida
-- **Combinación inteligente**: Secuencias repetidas configurables
-- **Análisis automático**: Descripción con tiempos de cada canción
+### 🎵 **Professional Audio**
+- **Multiple Formats**: MP3, WAV, FLAC, M4A, OGG
+- **High Quality**: 320kbps AAC output
+- **Smart Combination**: Configurable repeat sequences
+- **Automatic Analysis**: Description with timing for each song
 
-### 🎬 **Video de Calidad**
-- **Resolución Full HD**: 1920x1080 @ 30fps
-- **Bitrate alto**: 15M para máxima calidad
-- **Codec moderno**: H.264 con aceleración GPU
-- **Tamaño optimizado**: Balance perfecto calidad/tamaño
+### 🎬 **Quality Video**
+- **Full HD Resolution**: 1920x1080 @ 30fps
+- **High Bitrate**: 15M for maximum quality
+- **Modern Codec**: H.264 with GPU acceleration
+- **Optimized Size**: Perfect quality/size balance
 
-## 📁 Estructura del Proyecto
+## 📁 Project Structure
 
 ```
 ACE-Proyect/
-├── 🚀 SCRIPTS PRINCIPALES
-│   ├── main_optimized.py              # 🎯 Script principal optimizado (USAR ESTE)
-│   ├── main.py                        # Script original (más lento)
-│   └── video_generator_optimized.py   # Generador con aceleración GPU
-├── 📚 MÓDULOS CORE
-│   ├── audio_processor.py             # Procesamiento y combinación de audio
-│   ├── video_generator.py             # Generador original (OpenCV)
-│   ├── visualizer_transparent.py      # Visualizador con chroma key
-│   ├── config.py                      # ⚙️ Configuraciones centralizadas
-│   └── utils.py                       # Funciones auxiliares
-├── 📂 DIRECTORIOS DE TRABAJO
-│   ├── musica/                        # 🎵 Coloca aquí tus canciones
-│   │   ├── cancion1.mp3
-│   │   ├── cancion2.mp3
+├── 🚀 MAIN SCRIPTS
+│   ├── main_optimized.py              # 🎯 Optimized main script (USE THIS)
+│   ├── main.py                        # Original script (slower)
+│   └── video_generator_optimized.py   # GPU-accelerated generator
+├── 📚 CORE MODULES
+│   ├── audio_processor.py             # Audio processing and combination
+│   ├── video_generator.py             # Original generator (OpenCV)
+│   ├── visualizer_transparent.py      # Chroma key visualizer
+│   ├── config.py                      # ⚙️ Centralized configuration
+│   └── utils.py                       # Utility functions
+├── 📂 WORKING DIRECTORIES
+│   ├── musica/                        # 🎵 Place your songs here
+│   │   ├── song1.mp3
+│   │   ├── song2.mp3
 │   │   └── ...
-│   ├── recursos/                      # 🖼️ Imagen de fondo
-│   │   └── background.jpg             # Imagen de fondo personalizada
-│   ├── temp/                          # 📁 Archivos temporales (auto-limpieza)
-│   └── output/                        # 📹 Videos finales
-│       ├── video_final.mp4            # Video generado
-│       ├── descripcion.txt            # Tiempos de cada canción
-│       └── app.log                    # Log detallado
-├── 📖 DOCUMENTACIÓN
-│   ├── README.md                      # Esta documentación
-│   └── VISUALIZER_CONFIG_GUIDE.md     # Guía de configuración del visualizador
-└── 🛠️ AMBIENTE
-    └── .venv/                         # Entorno virtual Python
+│   ├── recursos/                      # 🖼️ Background image
+│   │   └── background.jpg             # Custom background image
+│   ├── temp/                          # 📁 Temporary files (auto-cleanup)
+│   └── output/                        # 📹 Final videos
+│       ├── video_final.mp4            # Generated video
+│       ├── descripcion.txt            # Timing for each song
+│       └── app.log                    # Detailed log
+├── 📖 DOCUMENTATION
+│   ├── README.md                      # Spanish documentation
+│   ├── README_EN.md                   # This English documentation
+│   └── VISUALIZER_CONFIG_GUIDE.md     # Visualizer configuration guide
+└── 🛠️ ENVIRONMENT
+    └── .venv/                         # Python virtual environment
 ```
 
-## 🚀 Instalación y Configuración
+## 🚀 Installation and Setup
 
-### Requisitos del Sistema
+### System Requirements
 
-**Hardware Recomendado:**
-- **GPU**: GPU NVIDIA con soporte NVENC (GTX 1660 o superior)
-- **RAM**: 16GB o más (32GB recomendado para proyectos grandes)
-- **CPU**: Procesador multi-core moderno (Intel i5/AMD Ryzen 5 o superior)
-- **Almacenamiento**: 10GB libres para archivos temporales
+**Recommended Hardware:**
+- **GPU**: NVIDIA GPU with NVENC support (GTX 1660 or higher)
+- **RAM**: 16GB or more (32GB recommended for large projects)
+- **CPU**: Modern multi-core processor (Intel i5/AMD Ryzen 5 or higher)
+- **Storage**: 10GB free space for temporary files
 
-### 1. Dependencias del Sistema
+### 1. System Dependencies
 
 ```bash
 # Ubuntu/Debian
@@ -82,213 +83,200 @@ sudo apt install ffmpeg python3-pip python3-venv
 brew install ffmpeg python3
 
 # Windows
-# Descargar ffmpeg desde https://ffmpeg.org/download.html
-# Instalar Python 3.8+ desde python.org
+# Download ffmpeg from https://ffmpeg.org/download.html
+# Install Python 3.8+ from python.org
 ```
 
-### 2. Configuración del Entorno
+### 2. Environment Setup
 
 ```bash
-# Clonar o descargar el proyecto
+# Clone or download the project
 cd ACE-Proyect
 
-# Crear entorno virtual
+# Create virtual environment
 python3 -m venv .venv
 
-# Activar entorno virtual
+# Activate virtual environment
 source .venv/bin/activate  # Linux/macOS
-# o en Windows: .venv\Scripts\activate
+# or on Windows: .venv\Scripts\activate
 
-# Instalar dependencias
+# Install dependencies
 pip install librosa opencv-python pillow numpy pydub
 ```
 
-### 3. Verificación de GPU
+### 3. GPU Verification
 
 ```bash
-# Verificar soporte GPU en FFmpeg
+# Check GPU support in FFmpeg
 ffmpeg -encoders | grep nvenc
 
-# Debería mostrar:
+# Should show:
 # V..... h264_nvenc         NVIDIA NVENC H.264 encoder
 ```
 
-## 📖 Guía de Uso
+## 📖 Usage Guide
 
-### 🎯 Inicio Rápido (Recomendado)
+### 🎯 Quick Start (Recommended)
 
 ```bash
-# 1. Activar entorno virtual
+# 1. Activate virtual environment
 source .venv/bin/activate
 
-# 2. Colocar canciones en la carpeta musica/
-cp tus_canciones/*.mp3 musica/
+# 2. Place songs in the musica/ folder
+cp your_songs/*.mp3 musica/
 
-# 3. Ejecutar versión optimizada
+# 3. Run optimized version
 python main_optimized.py
 
-# 4. ¡Encuentra tu video en output/video_final.mp4!
+# 4. Find your video in output/video_final.mp4!
 ```
 
-### 📝 Preparación Detallada
+### 📝 Detailed Preparation
 
-#### 1. **Archivos de Audio**
+#### 1. **Audio Files**
 ```bash
-# Coloca tus canciones en musica/
+# Place your songs in musica/
 musica/
-├── 01-cancion1.mp3
-├── 02-cancion2.mp3
-├── 03-cancion3.mp3
+├── 01-song1.mp3
+├── 02-song2.mp3
+├── 03-song3.mp3
 └── ...
 ```
-- **Formatos**: MP3, WAV, FLAC, M4A, OGG
-- **Orden**: Alfabético por nombre de archivo
-- **Cantidad**: 5-20 canciones recomendadas
+- **Formats**: MP3, WAV, FLAC, M4A, OGG
+- **Order**: Alphabetical by filename
+- **Quantity**: 5-20 songs recommended
 
-#### 2. **Imagen de Fondo** (opcional)
+#### 2. **Background Image** (optional)
 ```bash
-# Coloca tu imagen en recursos/
-cp mi_imagen.jpg recursos/background.jpg
+# Place your image in recursos/
+cp my_image.jpg recursos/background.jpg
 ```
-- **Formatos**: JPG, PNG
-- **Resolución**: Cualquiera (se redimensiona automáticamente)
-- **Si no existe**: Se genera un fondo degradado por defecto
+- **Formats**: JPG, PNG
+- **Resolution**: Any (automatically resized)
+- **If missing**: Default gradient background is generated
 
-### 🚀 Ejecución
+### 🚀 Execution
 
-#### **Versión Optimizada** (Recomendada)
+#### **Optimized Version** (Recommended)
 ```bash
-# Básico - Usa todas las configuraciones por defecto
+# Basic - Uses all default settings
 python main_optimized.py
 
-# Con opciones
-python main_optimized.py --verbose                    # Más detalles
-python main_optimized.py --background mi_imagen.jpg   # Imagen personalizada
-python main_optimized.py --no-cleanup                 # No borrar archivos temporales
+# With options
+python main_optimized.py --verbose                    # More details
+python main_optimized.py --background my_image.jpg    # Custom image
+python main_optimized.py --no-cleanup                 # Don't delete temp files
 ```
 
-#### **Versión Original** (Más lenta)
+#### **Original Version** (Slower)
 ```bash
-# Solo si necesitas usar el método original
+# Only if you need to use the original method
 python main.py
 ```
 
-### 📊 Resultados
+### 📊 Results
 
-Al finalizar obtendrás:
-- **📹 Video final**: `output/video_final.mp4` (1-2GB aproximadamente)
-- **📄 Descripción**: `output/descripcion.txt` con tiempos de cada canción
-- **📋 Log**: `output/app.log` con detalles del procesamiento
-- **⏱️ Tiempo**: 1-2 minutos con GPU, 10-30 minutos sin GPU
+Upon completion you'll get:
+- **📹 Final video**: `output/video_final.mp4` (1-2GB approximately)
+- **📄 Description**: `output/descripcion.txt` with timing for each song
+- **📋 Log**: `output/app.log` with processing details
+- **⏱️ Time**: 1-2 minutes with GPU, 10-30 minutes without GPU
 
-## ⚙️ Configuración Avanzada
+## ⚙️ Advanced Configuration
 
-### 🎨 Configuración del Visualizador
+### 🎨 Visualizer Configuration
 
-Edita `config.py` para personalizar el visualizador:
+Edit `config.py` to customize the visualizer:
 
 ```python
-# Configuración del visualizador optimizado
+# Optimized visualizer configuration
 VISUALIZER_OPTIMIZED_CONFIG = {
-    "width": 1920,                    # Ancho del visualizador
-    "height": 200,                    # Alto del visualizador
-    "position_from_bottom": 300,      # Posición desde abajo (pixels)
-    "color": "red",                   # Color del visualizador
-    "mode": "cline",                  # Modo de visualización
-    "mirror_effect": True,            # Efecto espejo horizontal
-    "opacity": 1.0,                   # Opacidad (0.0 a 1.0)
-    "scale": 1.0                      # Escala del visualizador
+    "width": 1920,                    # Visualizer width
+    "height": 200,                    # Visualizer height
+    "position_from_bottom": 50,       # Position from bottom (pixels)
+    "color": "red",                   # Visualizer color
+    "mode": "cline",                  # Visualization mode
+    "mirror_effect": True,            # Horizontal mirror effect
+    "opacity": 1.0,                   # Opacity (0.0 to 1.0)
+    "scale": 1.0                      # Visualizer scale
 }
 ```
 
-**Colores Disponibles:**
+**Available Colors:**
 `red`, `cyan`, `white`, `yellow`, `green`, `blue`, `magenta`, `orange`, `pink`
 
-### 🎬 Configuración de Video
+### 🎬 Video Configuration
 
 ```python
-# Calidad y resolución del video
+# Video quality and resolution
 VIDEO_CONFIG = {
-    "width": 1920,              # Ancho del video
-    "height": 1080,             # Alto del video
-    "fps": 30,                  # Frames por segundo
-    "bitrate": "5000k",         # Bitrate (versión original)
-    "audio_bitrate": "320k"     # Bitrate de audio
+    "width": 1920,              # Video width
+    "height": 1080,             # Video height
+    "fps": 30,                  # Frames per second
+    "bitrate": "5000k",         # Bitrate (original version)
+    "audio_bitrate": "320k"     # Audio bitrate
 }
 ```
 
-### 🔄 Configuración de Procesamiento
+### 🔄 Processing Configuration
 
 ```python
-# Control del procesamiento
+# Processing control
 PROCESS_CONFIG = {
-    "repeat_count": 1,                    # Repeticiones de la lista
-    "max_concurrent_processes": 4,        # Procesos paralelos
-    "temp_cleanup": True,                 # Limpiar archivos temporales
+    "repeat_count": 1,                    # List repetitions
+    "max_concurrent_processes": 4,        # Parallel processes
+    "temp_cleanup": True,                 # Clean temporary files
     "supported_formats": ['.mp3', '.wav', '.flac', '.m4a', '.ogg']
 }
 ```
 
-### 📁 Configuración de Archivos
+## 🎮 Practical Examples
 
-```python
-# Ubicaciones de archivos
-FILES_CONFIG = {
-    "background_image": "recursos/background.jpg",
-    "final_video": "output/video_final.mp4",
-    "description_file": "output/descripcion.txt"
-}
-```
-
-Para más detalles, consulta: **[VISUALIZER_CONFIG_GUIDE.md](VISUALIZER_CONFIG_GUIDE.md)**
-
-## 🎮 Ejemplos Prácticos
-
-### 🎵 Ejemplo 1: Playlist de Música Electrónica
+### 🎵 Example 1: Electronic Music Playlist
 
 ```bash
-# 1. Organizar canciones
+# 1. Organize songs
 musica/
 ├── 01-intro.mp3
 ├── 02-drop.mp3
 ├── 03-buildup.mp3
 └── 04-outro.mp3
 
-# 2. Configurar visualizador para música electrónica
-# En config.py:
+# 2. Configure visualizer for electronic music
+# In config.py:
 VISUALIZER_OPTIMIZED_CONFIG = {
     "color": "cyan",
     "height": 250,
-    "position_from_bottom": 200
+    "position_from_bottom": 100
 }
 
-# 3. Ejecutar
+# 3. Execute
 python main_optimized.py --verbose
 ```
 
-### 🎸 Ejemplo 2: Mixtape de Rock
+### 🎸 Example 2: Rock Mixtape
 
 ```bash
-# 1. Configurar visualizador para rock
-# En config.py:
+# 1. Configure visualizer for rock
+# In config.py:
 VISUALIZER_OPTIMIZED_CONFIG = {
     "color": "red",
     "height": 300,
     "mirror_effect": True
 }
 
-# 2. Usar imagen de fondo personalizada
-cp portada_album.jpg recursos/background.jpg
+# 2. Use custom background image
+cp album_cover.jpg recursos/background.jpg
 
-# 3. Ejecutar sin limpiar archivos temporales
+# 3. Execute without cleaning temp files
 python main_optimized.py --no-cleanup
 ```
 
-### 🎻 Ejemplo 3: Música Clásica
+### 🎻 Example 3: Classical Music
 
 ```bash
-# 1. Configurar colores elegantes
-# En config.py:
+# 1. Configure elegant colors
+# In config.py:
 VISUALIZER_OPTIMIZED_CONFIG = {
     "color": "white",
     "height": 150,
@@ -296,141 +284,109 @@ VISUALIZER_OPTIMIZED_CONFIG = {
     "mirror_effect": False
 }
 
-# 2. Ejecutar
+# 2. Execute
 python main_optimized.py
 ```
 
-### 🎤 Ejemplo 4: Personalización Avanzada
+## 🔧 Troubleshooting
 
-```bash
-# 1. Configurar múltiples aspectos
-# En config.py:
-VISUALIZER_OPTIMIZED_CONFIG = {
-    "width": 1920,
-    "height": 180,
-    "position_from_bottom": 320,
-    "color": "magenta",
-    "mode": "cline",
-    "opacity": 0.9,
-    "scale": 1.2
-}
-
-# 2. Configurar menos repeticiones
-PROCESS_CONFIG = {
-    "repeat_count": 1
-}
-
-# 3. Ejecutar
-python main_optimized.py --verbose
-```
-
-## 🔧 Solución de Problemas
-
-### ❌ Errores Comunes
+### ❌ Common Errors
 
 #### **Error: "ffmpeg not found"**
 ```bash
-# Verificar instalación
+# Verify installation
 ffmpeg -version
 
-# Si no está instalado:
+# If not installed:
 sudo apt install ffmpeg  # Ubuntu/Debian
 brew install ffmpeg       # macOS
 ```
 
-#### **Error: "No se encontraron archivos de audio"**
-- ✅ Verificar que los archivos estén en `musica/`
-- ✅ Confirmar extensiones válidas: `.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`
-- ✅ Revisar permisos de lectura en los archivos
+#### **Error: "No audio files found"**
+- ✅ Verify files are in `musica/`
+- ✅ Check valid extensions: `.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`
+- ✅ Check file read permissions
 
-#### **Error: "GPU no disponible"**
-- ✅ Verificar drivers NVIDIA actualizados
-- ✅ Comprobar soporte NVENC: `ffmpeg -encoders | grep nvenc`
-- ✅ El sistema seguirá funcionando en CPU (más lento)
+#### **Error: "GPU not available"**
+- ✅ Verify updated NVIDIA drivers
+- ✅ Check NVENC support: `ffmpeg -encoders | grep nvenc`
+- ✅ System will continue on CPU (slower)
 
-#### **Error: "Memoria insuficiente"**
+#### **Error: "Insufficient memory"**
 ```python
-# Reducir procesos paralelos en config.py
+# Reduce parallel processes in config.py
 PROCESS_CONFIG = {
-    "max_concurrent_processes": 2  # Reducir de 4 a 2
+    "max_concurrent_processes": 2  # Reduce from 4 to 2
 }
 ```
 
-### 🐛 Problemas de Rendimiento
+### 🐛 Performance Issues
 
-#### **Procesamiento muy lento**
-- ✅ Usar `main_optimized.py` en lugar de `main.py`
-- ✅ Verificar que GPU esté disponible
-- ✅ Reducir resolución si es necesario
+#### **Very slow processing**
+- ✅ Use `main_optimized.py` instead of `main.py`
+- ✅ Verify GPU is available
+- ✅ Reduce resolution if necessary
 
-#### **Video final con tamaño muy grande**
+#### **Final video too large**
 ```python
-# Reducir bitrate en config.py
+# Reduce bitrate in config.py
 VIDEO_CONFIG = {
-    "bitrate": "8000k"  # Reducir de 15M
+    "bitrate": "8000k"  # Reduce from 15M
 }
 ```
 
-### 📋 Diagnóstico
+### 📋 Diagnostics
 
-#### **Verificar configuración del sistema**
+#### **Check system configuration**
 ```bash
-# Información del sistema
+# System information
 python main_optimized.py --verbose
 
-# Verificar GPU
-nvidia-smi  # Solo en sistemas con NVIDIA
+# Check GPU
+nvidia-smi  # NVIDIA systems only
 
-# Verificar espacio en disco
+# Check disk space
 df -h
 ```
 
-#### **Revisar logs**
+#### **Review logs**
 ```bash
-# Ver log completo
+# View complete log
 cat output/app.log
 
-# Ver solo errores
+# View errors only
 grep ERROR output/app.log
 ```
 
-### 🆘 Soporte
+## 📊 Technical Information
 
-Si persisten los problemas:
-1. **Revisar** `output/app.log` para detalles
-2. **Verificar** que todas las dependencias estén instaladas
-3. **Comprobar** que los archivos de entrada sean válidos
-4. **Usar** `--verbose` para más información
+### 🔄 Optimized Process Flow
 
-## 📊 Información Técnica
+1. **🔍 Validation**: Verify files, dependencies, and hardware
+2. **🎵 Audio Processing**: Combine songs using PyDub + FFmpeg
+3. **🎨 Video Generation**: Create final video with integrated visualizer using FFmpeg + GPU
+4. **🧹 Cleanup**: Remove temporary files automatically
 
-### 🔄 Flujo del Proceso Optimizado
+### 🎬 Output Specifications
 
-1. **🔍 Validación**: Verifica archivos, dependencias y hardware
-2. **🎵 Procesamiento Audio**: Combina canciones usando PyDub + FFmpeg
-3. **🎨 Generación Video**: Crea video final con visualizador integrado usando FFmpeg + GPU
-4. **🧹 Limpieza**: Elimina archivos temporales automáticamente
+| Aspect | Optimized Version | Original Version |
+|--------|-------------------|------------------|
+| **Video Codec** | H.264 (GPU) | H.264 (CPU) |
+| **Audio Codec** | AAC 320kbps | AAC 320kbps |
+| **Resolution** | 1920x1080 @ 30fps | 1920x1080 @ 30fps |
+| **Bitrate** | 15M (high quality) | 5M (standard) |
+| **Time** | 1-2 minutes | 10-60 minutes |
 
-### 🎬 Especificaciones de Salida
+### ⚡ Performance Comparison
 
-| Aspecto | Versión Optimizada | Versión Original |
-|---------|-------------------|------------------|
-| **Codec Video** | H.264 (GPU) | H.264 (CPU) |
-| **Codec Audio** | AAC 320kbps | AAC 320kbps |
-| **Resolución** | 1920x1080 @ 30fps | 1920x1080 @ 30fps |
-| **Bitrate** | 15M (alta calidad) | 5M (estándar) |
-| **Tiempo** | 1-2 minutos | 10-60 minutos |
+| Metric | GPU (NVIDIA NVENC) | CPU Only |
+|--------|-------------------|----------|
+| **Time (10 songs)** | 1-2 minutes | 15-30 minutes |
+| **Quality** | Maximum (15M) | Standard (5M) |
+| **RAM Usage** | 4-8GB | 2-4GB |
+| **Temperature** | GPU: 60-70°C | CPU: 70-80°C |
 
-### ⚡ Rendimiento Comparativo
-
-| Métrica | GPU (RTX 4070Ti) | CPU (i5 14va gen) |
-|---------|-------------------|-------------------|
-| **Tiempo (10 canciones)** | 1-2 minutos | 15-30 minutos |
-| **Calidad** | Máxima (15M) | Estándar (5M) |
-| **Uso RAM** | 4-8GB | 2-4GB |
-| **Temperatura** | GPU: 60-70°C | CPU: 70-80°C |
-
-### 🏗️ Arquitectura del Sistema
+### 🏗️ System Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -454,38 +410,47 @@ Si persisten los problemas:
                       └─────────────────────────────────┘
 ```
 
-### 🔧 Dependencias Críticas
+### 🔧 Critical Dependencies
 
-| Dependencia | Versión | Propósito |
-|-------------|---------|-----------|
-| **FFmpeg** | 6.1+ | Procesamiento de video/audio |
-| **Python** | 3.8+ | Runtime principal |
-| **librosa** | 0.10+ | Análisis de audio |
-| **OpenCV** | 4.8+ | Procesamiento de imágenes |
-| **PyDub** | 0.25+ | Manipulación de audio |
-| **NumPy** | 1.20+ | Operaciones matemáticas |
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| **FFmpeg** | 6.1+ | Video/audio processing |
+| **Python** | 3.8+ | Main runtime |
+| **librosa** | 0.10+ | Audio analysis |
+| **OpenCV** | 4.8+ | Image processing |
+| **PyDub** | 0.25+ | Audio manipulation |
+| **NumPy** | 1.20+ | Mathematical operations |
 
-### 💾 Gestión de Memoria
+### 🎯 Implemented Optimizations
 
-- **RAM Uso**: 4-8GB durante procesamiento
-- **Almacenamiento Temporal**: 2-5GB
-- **Salida Final**: 500MB-2GB por hora de audio
-- **Limpieza**: Automática al completar
+1. **🔥 GPU Acceleration**: NVENC for H.264 encoding
+2. **⚡ Direct FFmpeg**: Eliminates frame-by-frame processing
+3. **🔄 Complex Filters**: Integrated visualizer in single pass
+4. **📊 Parallelism**: Multiple processes for audio
+5. **🧠 Smart Caching**: Resource reuse
 
-### 🎯 Optimizaciones Implementadas
+## 🎉 Expected Results
 
-1. **🔥 Aceleración GPU**: NVENC para codificación H.264
-2. **⚡ FFmpeg Directo**: Elimina procesamiento frame-by-frame
-3. **🔄 Filtros Complejos**: Visualizador integrado en una sola pasada
-4. **📊 Paralelismo**: Múltiples procesos para audio
-5. **🧠 Caché Inteligente**: Reutilización de recursos
+With GPU acceleration (NVIDIA NVENC supported GPU):
+- **⏱️ Time**: 1-2 minutes for 10 songs
+- **📈 Quality**: Maximum (15M bitrate, 1080p30)
+- **🎨 Visualizer**: Horizontal mirror with configurable color
+- **💾 Size**: 1-2GB per hour of final audio
 
-## 🎉 Resultados Esperados
+Enjoy professional speed and quality! 🚀
 
-Con el setup recomendado (RTX 4070Ti + 32GB RAM + i5 14va gen):
-- **⏱️ Tiempo**: 1-2 minutos para 10 canciones
-- **📈 Calidad**: Máxima (15M bitrate, 1080p30)
-- **🎨 Visualizador**: Espejo horizontal con color configurable
-- **💾 Tamaño**: 1-2GB por hora de audio final
+## 📄 License
 
-¡Disfruta de la velocidad y calidad profesional! 🚀
+This project is provided as-is for educational and personal use.
+
+## 🤝 Contributing
+
+If you encounter issues or have suggestions:
+1. **Review** `output/app.log` for details
+2. **Verify** all dependencies are installed
+3. **Check** input files are valid
+4. **Use** `--verbose` for more information
+
+---
+
+*Made with ❤️ for the global music community*
