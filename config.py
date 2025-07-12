@@ -39,9 +39,23 @@ AUDIO_CONFIG = {
     "quality": "320k"
 }
 
+# Function to find background image with any supported extension
+def get_background_image_path():
+    """Find background image with PNG, JPG, or JPEG extension"""
+    base_path = os.path.join(RECURSOS_DIR, "background")
+    extensions = ['.png', '.jpg', '.jpeg']
+    
+    for ext in extensions:
+        full_path = base_path + ext
+        if os.path.exists(full_path):
+            return full_path
+    
+    # Return default PNG path if none found
+    return base_path + '.png'
+
 # Configuraciones de archivos
 FILES_CONFIG = {
-    "background_image": os.path.join(RECURSOS_DIR, "background.jpg"),
+    "background_image": get_background_image_path(),
     "combined_audio": os.path.join(TEMP_DIR, "combined_audio.mp3"),
     "description_file": os.path.join(OUTPUT_DIR, "descripcion.txt"),
     "final_video": os.path.join(OUTPUT_DIR, "video_final.mp4"),
