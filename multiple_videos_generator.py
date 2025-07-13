@@ -4,13 +4,15 @@ Multiple videos generator - extends the optimized generator for batch processing
 
 import os
 import sys
+import json
 import logging
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from audio_processor import AudioProcessor
 from video_generator_optimized import OptimizedVideoGenerator
+from youtube_uploader import YouTubeUploader, format_time_remaining
 from config import (
     MUSICA_DIR, RECURSOS_DIR, TEMP_DIR, OUTPUT_DIR, 
     FILES_CONFIG, PROCESS_CONFIG, LOGGING_CONFIG, VISUALIZER_OPTIMIZED_CONFIG
@@ -20,18 +22,23 @@ from config import (
 class MultipleVideosGenerator:
     """Generator for creating multiple videos with different configurations"""
     
-    def __init__(self, progress_callback=None):
+    def __init__(self, progress_callback=None, youtube_config=None):
         """
         Initialize the multiple videos generator
         
         Args:
             progress_callback: Function to call with progress updates
                               Should accept (video_number, progress_percent, message)
+            youtube_config: Optional YouTube configuration for upload
         """
         self.progress_callback = progress_callback
+        self.youtube_config = youtube_config
         self.audio_processor = AudioProcessor()
         self.video_generator = OptimizedVideoGenerator()
         self.cancelled = False
+        
+        # YouTube uploader (if needed)
+        self.youtube_uploader = youtube_config['uploader'] if youtube_config else None
         
         # Setup logging
         self.logger = self._setup_logging()
@@ -88,8 +95,13 @@ class MultipleVideosGenerator:
             List of generated video paths (or None for failed videos)
         """
         try:
-            self.logger.info("=== STARTING MULTIPLE VIDEOS GENERATION ===")
-            self.logger.info(f"Total videos to generate: {len(video_configs)}")
+            if self.youtube_config:
+                self.logger.info("=== STARTING MULTIPLE VIDEOS GENERATION WITH YOUTUBE UPLOAD ===")
+                self.logger.info(f"Total videos to process: {len(video_configs)}")
+                self.logger.info("Workflow: Generate → Upload → Delete local file")
+            else:
+                self.logger.info("=== STARTING MULTIPLE VIDEOS GENERATION ===")
+                self.logger.info(f"Total videos to generate: {len(video_configs)}")
             
             # Ensure output directory exists
             os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -102,14 +114,30 @@ class MultipleVideosGenerator:
                     break
                     
                 try:
-                    video_path = self._generate_single_video(config)
+                    if self.youtube_config:
+                        if self.youtube_config.get('immediate_mode', True):
+                            # Immediate upload mode
+                            video_path = self._generate_and_upload_video(config)
+                        else:
+                            # Scheduled upload mode - upload with publish_at
+                            video_path = self._generate_and_upload_scheduled_video(config)
+                    else:
+                        video_path = self._generate_single_video(config)
                     generated_videos.append(video_path)
                     
                 except Exception as e:
-                    self.logger.error(f"Error generating video {config['video_number']}: {e}")
+                    self.logger.error(f"Error processing video {config['video_number']}: {e}")
                     generated_videos.append(None)
                     
-            self.logger.info("=== MULTIPLE VIDEOS GENERATION COMPLETED ===")
+                    # If YouTube upload fails, stop the entire process
+                    if self.youtube_config:
+                        self.logger.error("Stopping process due to YouTube upload failure")
+                        break
+                    
+            if self.youtube_config:
+                self.logger.info("=== MULTIPLE VIDEOS GENERATION AND UPLOAD COMPLETED ===")
+            else:
+                self.logger.info("=== MULTIPLE VIDEOS GENERATION COMPLETED ===")
             return generated_videos
             
         except Exception as e:
@@ -198,6 +226,334 @@ class MultipleVideosGenerator:
                 shutil.rmtree(video_temp_dir, ignore_errors=True)
                 
             raise e
+            
+    def _generate_and_upload_video(self, config):
+        """
+        Generate a video and upload it to YouTube, then delete local file
+        
+        Args:
+            config: Dictionary with video configuration
+            
+        Returns:
+            YouTube video ID if successful, None if failed
+        """
+        video_number = config['video_number']
+        
+        try:
+            # First, check if we can upload (quota management)
+            if not self.youtube_uploader.quota_manager.can_upload():
+                if self.youtube_uploader.quota_manager.is_in_cooldown():
+                    # Wait for quota reset
+                    self._wait_for_quota_reset()
+                else:
+                    raise Exception("Daily upload limit reached")
+            
+            # Step 1: Generate video
+            self._report_progress(video_number, 5, "Iniciando generación...")
+            video_path = self._generate_single_video(config)
+            
+            if not video_path or not os.path.exists(video_path):
+                raise Exception("Video generation failed")
+                
+            # Step 2: Upload to YouTube
+            self._report_progress(video_number, 85, "Subiendo a YouTube...")
+            self._update_upload_progress(video_number, 'uploading')
+            
+            # Generate title with sequence number
+            title = self.youtube_config['title_base'].replace('{}', str(video_number))
+            
+            success, video_id, error_msg = self.youtube_uploader.upload_video(
+                video_path=video_path,
+                title=title,
+                description=self.youtube_config['description'],
+                tags=self.youtube_config['tags'],
+                category_id=self.youtube_config['category_id'],
+                privacy_status=self.youtube_config['privacy_status']
+            )
+            
+            if not success:
+                raise Exception(f"YouTube upload failed: {error_msg}")
+                
+            self._update_upload_progress(video_number, 'uploaded', f"Video ID: {video_id}")
+            
+            # Step 3: Delete local file
+            self._report_progress(video_number, 95, "Eliminando archivo local...")
+            self._update_upload_progress(video_number, 'deleting')
+            
+            try:
+                os.remove(video_path)
+                self.logger.info(f"Deleted local file: {video_path}")
+                self._update_upload_progress(video_number, 'completed')
+            except Exception as e:
+                self.logger.warning(f"Could not delete local file {video_path}: {e}")
+                
+            self._report_progress(video_number, 100, "Completado")
+            
+            # Update quota status in UI
+            quota_status = self.youtube_uploader.get_quota_status()
+            self._update_quota_status(quota_status['videos_uploaded_today'])
+            
+            return video_id
+            
+        except Exception as e:
+            self.logger.error(f"Error in generate and upload workflow for video {video_number}: {e}")
+            # Clean up local file if it exists
+            if 'video_path' in locals() and video_path and os.path.exists(video_path):
+                try:
+                    os.remove(video_path)
+                    self.logger.info(f"Cleaned up failed video file: {video_path}")
+                except:
+                    pass
+            raise e
+    
+    def _generate_and_upload_scheduled_video(self, config):
+        """
+        Generate a video and upload it with scheduled publish time
+        
+        Args:
+            config: Dictionary with video configuration
+            
+        Returns:
+            YouTube video ID if successful, None if failed
+        """
+        video_number = config['video_number']
+        
+        try:
+            # First, check if we can upload (quota management)
+            if not self.youtube_uploader.quota_manager.can_upload():
+                if self.youtube_uploader.quota_manager.is_in_cooldown():
+                    # Wait for quota reset
+                    self._wait_for_quota_reset()
+                else:
+                    raise Exception("Daily upload limit reached")
+            
+            # Step 1: Generate video
+            self._report_progress(video_number, 5, "Iniciando generación...")
+            video_path = self._generate_single_video(config)
+            
+            if not video_path or not os.path.exists(video_path):
+                raise Exception("Video generation failed")
+                
+            # Step 2: Get scheduled upload info for this video
+            schedule_item = self._get_schedule_for_video(video_number)
+            if not schedule_item:
+                raise Exception(f"No schedule found for video {video_number}")
+                
+            # Step 3: Upload to YouTube with scheduled publish time
+            self._report_progress(video_number, 85, f"Subiendo a YouTube (programado para {schedule_item['date']} {schedule_item['time']})...")
+            self._update_upload_progress(video_number, 'uploading')
+            
+            success, video_id, error_msg = self.youtube_uploader.upload_video(
+                video_path=video_path,
+                title=schedule_item['title'],
+                description=self.youtube_config['description'],
+                tags=self.youtube_config['tags'],
+                category_id=self.youtube_config['category_id'],
+                privacy_status="private",  # Must be private for scheduled publishing
+                publish_at=schedule_item['publish_at']
+            )
+            
+            if not success:
+                raise Exception(f"YouTube upload failed: {error_msg}")
+                
+            self._update_upload_progress(video_number, 'uploaded', f"Video ID: {video_id}, se publicará {schedule_item['date']} {schedule_item['time']}")
+            
+            # Step 4: Create upload log entry
+            self._log_upload_details(video_number, video_path, video_id, schedule_item)
+            
+            # Step 5: Delete local file
+            self._report_progress(video_number, 95, "Eliminando archivo local...")
+            self._update_upload_progress(video_number, 'deleting')
+            
+            try:
+                os.remove(video_path)
+                self.logger.info(f"Deleted local file: {video_path}")
+                self._update_upload_progress(video_number, 'completed')
+            except Exception as e:
+                self.logger.warning(f"Could not delete local file {video_path}: {e}")
+                
+            self._report_progress(video_number, 100, "Completado")
+            
+            # Update quota status in UI
+            quota_status = self.youtube_uploader.get_quota_status()
+            self._update_quota_status(quota_status['videos_uploaded_today'])
+            
+            return video_id
+            
+        except Exception as e:
+            self.logger.error(f"Error in scheduled upload workflow for video {video_number}: {e}")
+            # Clean up local file if it exists
+            if 'video_path' in locals() and video_path and os.path.exists(video_path):
+                try:
+                    os.remove(video_path)
+                    self.logger.info(f"Cleaned up failed video file: {video_path}")
+                except:
+                    pass
+            raise e
+    
+    def _get_schedule_for_video(self, video_number):
+        """Get schedule item for specific video number"""
+        if not self.youtube_config or not self.youtube_config.get('scheduling'):
+            return None
+            
+        schedule = self.youtube_config['scheduling']['schedule']
+        for item in schedule:
+            if item['video_number'] == video_number:
+                return item
+        return None
+    
+    def _log_upload_details(self, video_number, video_path, video_id, schedule_item):
+        """Log detailed upload information"""
+        try:
+            # Calculate video duration (from audio files)
+            duration = self._calculate_video_duration(video_number)
+            
+            # Get file size
+            file_size = os.path.getsize(video_path) if os.path.exists(video_path) else 0
+            file_size_mb = file_size / (1024 * 1024)
+            
+            # Create log entry
+            log_entry = {
+                'video_number': video_number,
+                'title': schedule_item['title'],
+                'youtube_id': video_id,
+                'duration_minutes': duration,
+                'file_size_mb': round(file_size_mb, 2),
+                'scheduled_publish': f"{schedule_item['date']} {schedule_item['time']}",
+                'upload_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'status': 'uploaded_scheduled'
+            }
+            
+            # Write to upload log
+            log_file = os.path.join(OUTPUT_DIR, "youtube_uploads.log")
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - "
+                       f"Video {video_number}: {schedule_item['title']} - "
+                       f"ID: {video_id} - Duration: {duration}min - "
+                       f"Size: {file_size_mb:.1f}MB - "
+                       f"Scheduled: {schedule_item['date']} {schedule_item['time']}\n")
+                       
+            # Also create detailed JSON log
+            json_log_file = os.path.join(OUTPUT_DIR, "youtube_uploads_detailed.json")
+            
+            # Load existing logs or create new list
+            upload_logs = []
+            if os.path.exists(json_log_file):
+                try:
+                    with open(json_log_file, 'r', encoding='utf-8') as f:
+                        upload_logs = json.load(f)
+                except:
+                    upload_logs = []
+                    
+            upload_logs.append(log_entry)
+            
+            # Save updated logs
+            with open(json_log_file, 'w', encoding='utf-8') as f:
+                json.dump(upload_logs, f, indent=2, ensure_ascii=False)
+                
+            self.logger.info(f"Upload details logged for video {video_number}")
+            
+        except Exception as e:
+            self.logger.warning(f"Could not log upload details for video {video_number}: {e}")
+            
+    def _calculate_video_duration(self, video_number):
+        """Calculate video duration from audio files (approximate)"""
+        try:
+            # This is an approximation - in a real scenario you'd use librosa or similar
+            # For now, estimate based on number of songs and average duration
+            # You could enhance this to actually analyze the combined audio file
+            return 3.5  # Default estimate in minutes
+        except:
+            return 0
+            
+    def _wait_for_quota_reset(self):
+        """Wait for YouTube quota reset with progress updates"""
+        remaining = self.youtube_uploader.quota_manager.get_cooldown_remaining()
+        if not remaining:
+            return
+            
+        end_time = datetime.now() + remaining
+        self.logger.info(f"Waiting for quota reset. End time: {end_time}")
+        
+        # Notify UI about quota countdown start
+        self._start_quota_countdown(end_time)
+        
+        # Wait with progress callback
+        def quota_progress_callback(remaining_seconds, total_seconds):
+            if self.cancelled:
+                return
+            # Update is handled by the progress dialog's timer
+            
+        self.youtube_uploader.wait_for_quota_reset(quota_progress_callback)
+        
+    def _update_upload_progress(self, video_number, stage, message=""):
+        """Update upload progress in UI"""
+        if hasattr(self, 'progress_callback') and self.progress_callback:
+            # This will be handled by the progress dialog
+            pass
+            
+    def _update_quota_status(self, videos_uploaded):
+        """Update quota status in UI"""
+        if hasattr(self, 'progress_callback') and self.progress_callback:
+            # This will be handled by the progress dialog
+            pass
+            
+    def _start_quota_countdown(self, end_time):
+        """Start quota countdown in UI"""
+        if hasattr(self, 'progress_callback') and self.progress_callback:
+            # This will be handled by the progress dialog
+            pass
+    
+    def _schedule_uploads(self, generated_videos):
+        """Schedule uploads for generated videos"""
+        if not self.youtube_config or not self.youtube_config.get('scheduling'):
+            self.logger.warning("No scheduling configuration available")
+            return
+            
+        scheduling_config = self.youtube_config['scheduling']
+        schedule = scheduling_config['schedule']
+        
+        # Filter out failed video generations
+        valid_videos = [v for v in generated_videos if v is not None]
+        
+        if len(valid_videos) == 0:
+            self.logger.error("No valid videos to schedule")
+            return
+            
+        # Create scheduling data file
+        schedule_data = []
+        for i, video_path in enumerate(valid_videos):
+            if i < len(schedule):
+                schedule_item = schedule[i]
+                schedule_data.append({
+                    'video_path': video_path,
+                    'video_number': schedule_item['video_number'],
+                    'title': schedule_item['title'],
+                    'publish_at': schedule_item['publish_at'],
+                    'date': schedule_item['date'],
+                    'time': schedule_item['time'],
+                    'description': self.youtube_config['description'],
+                    'tags': self.youtube_config['tags'],
+                    'category_id': self.youtube_config['category_id'],
+                    'privacy_status': self.youtube_config['privacy_status']
+                })
+                
+        # Save schedule to file
+        import json
+        schedule_file = os.path.join(OUTPUT_DIR, "youtube_upload_schedule.json")
+        try:
+            with open(schedule_file, 'w', encoding='utf-8') as f:
+                json.dump(schedule_data, f, indent=2, ensure_ascii=False)
+            
+            self.logger.info(f"Schedule saved to {schedule_file}")
+            self.logger.info(f"Scheduled {len(schedule_data)} videos for upload")
+            
+            # Log schedule summary
+            for item in schedule_data:
+                self.logger.info(f"  {item['date']} {item['time']} - {item['title']}")
+                
+        except Exception as e:
+            self.logger.error(f"Error saving schedule: {e}")
             
     def _process_audio(self, songs, temp_dir, video_number):
         """Process and combine audio files for a single video"""

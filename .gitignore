@@ -143,5 +143,22 @@ temp/
 *.ogg
 *.m4a
 
+# YouTube API credentials and tokens (SENSITIVE - DO NOT COMMIT)
+client_secret.json
+token.pickle
+*.pickle
+
+# YouTube upload logs and schedules
+youtube_upload_schedule.json
+youtube_uploads.log
+youtube_uploads_detailed.json
+scheduled_uploads.log
+
+# Temporary files and screenshots  
+*screenshot*.png
+*Google_AI_Studio*.png
+*.txt.save
+CLAUDE.md.save
+
 # Claude Code documentation
-CLAUDE.md
+# CLAUDE.md (uncommented - useful for development)

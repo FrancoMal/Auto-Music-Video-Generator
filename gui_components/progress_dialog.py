@@ -15,20 +15,24 @@ class ProgressDialog(QDialog):
     
     cancelRequested = Signal()
     
-    def __init__(self, total_videos, parent=None):
+    def __init__(self, total_videos, parent=None, youtube_mode=False):
         super().__init__(parent)
         self.total_videos = total_videos
+        self.youtube_mode = youtube_mode
         self.current_video = 0
         self.start_time = None
         self.video_start_times = []
         self.video_durations = []
+        self.quota_countdown_timer = None
+        self.quota_end_time = None
         self.setup_ui()
         
     def setup_ui(self):
         """Setup the user interface"""
-        self.setWindowTitle("Generando Videos Múltiples")
+        title = "Generando y Subiendo Videos a YouTube" if self.youtube_mode else "Generando Videos Múltiples"
+        self.setWindowTitle(title)
         self.setModal(True)
-        self.resize(700, 500)
+        self.resize(700, 600 if self.youtube_mode else 500)
         
         layout = QVBoxLayout(self)
         
@@ -65,6 +69,19 @@ class ProgressDialog(QDialog):
         
         progress_layout.addLayout(time_layout)
         layout.addWidget(progress_group)
+        
+        # YouTube quota section (only in YouTube mode)
+        if self.youtube_mode:
+            quota_group = QGroupBox("Estado de Cuota de YouTube")
+            quota_layout = QVBoxLayout(quota_group)
+            
+            self.quota_status_label = QLabel("Videos subidos hoy: 0/6")
+            quota_layout.addWidget(self.quota_status_label)
+            
+            self.quota_countdown_label = QLabel("Estado: Listo para subir")
+            quota_layout.addWidget(self.quota_countdown_label)
+            
+            layout.addWidget(quota_group)
         
         # Logs section
         logs_group = QGroupBox("Logs en tiempo real")
@@ -104,8 +121,13 @@ class ProgressDialog(QDialog):
     def start_generation(self):
         """Start the generation process"""
         self.start_time = time.time()
-        self.add_log("=== INICIANDO GENERACIÓN DE VIDEOS MÚLTIPLES ===")
-        self.add_log(f"Total de videos a generar: {self.total_videos}")
+        if self.youtube_mode:
+            self.add_log("=== INICIANDO GENERACIÓN Y SUBIDA A YOUTUBE ===")
+            self.add_log(f"Total de videos a procesar: {self.total_videos}")
+            self.add_log("Proceso: Generar → Subir → Eliminar archivo local")
+        else:
+            self.add_log("=== INICIANDO GENERACIÓN DE VIDEOS MÚLTIPLES ===")
+            self.add_log(f"Total de videos a generar: {self.total_videos}")
         self.add_log(f"Hora de inicio: {datetime.now().strftime('%H:%M:%S')}")
         self.add_log("")
         
@@ -214,3 +236,88 @@ class ProgressDialog(QDialog):
         if self.cancel_button.isEnabled():
             self.on_cancel_clicked()
         event.accept()
+        
+    # YouTube-specific methods
+    def update_upload_progress(self, video_number, stage, message=""):
+        """Update progress for YouTube upload stages"""
+        if not self.youtube_mode:
+            return
+            
+        stage_messages = {
+            'generating': f"🎬 Generando video {video_number}...",
+            'uploading': f"☁️ Subiendo video {video_number} a YouTube...",
+            'uploaded': f"✅ Video {video_number} subido exitosamente",
+            'deleting': f"🗑️ Eliminando archivo local del video {video_number}...",
+            'completed': f"✨ Video {video_number} procesado completamente"
+        }
+        
+        if stage in stage_messages:
+            self.add_log(stage_messages[stage])
+        if message:
+            self.add_log(f"   {message}")
+            
+    def update_quota_status(self, videos_uploaded, daily_limit=6):
+        """Update YouTube quota status display"""
+        if not self.youtube_mode:
+            return
+            
+        self.quota_status_label.setText(f"Videos subidos hoy: {videos_uploaded}/{daily_limit}")
+        
+        if videos_uploaded >= daily_limit:
+            self.quota_countdown_label.setText("Estado: Límite diario alcanzado")
+            self.quota_countdown_label.setStyleSheet("color: orange; font-weight: bold;")
+        else:
+            remaining = daily_limit - videos_uploaded
+            self.quota_countdown_label.setText(f"Estado: Pueden subirse {remaining} videos más")
+            self.quota_countdown_label.setStyleSheet("color: green;")
+            
+    def start_quota_countdown(self, end_time):
+        """Start quota cooldown countdown"""
+        if not self.youtube_mode:
+            return
+            
+        self.quota_end_time = end_time
+        self.add_log("⏰ INICIANDO PERÍODO DE ESPERA DE CUOTA")
+        self.add_log(f"Reanudación programada: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # Start countdown timer
+        if self.quota_countdown_timer:
+            self.quota_countdown_timer.stop()
+            
+        self.quota_countdown_timer = QTimer()
+        self.quota_countdown_timer.timeout.connect(self.update_quota_countdown)
+        self.quota_countdown_timer.start(1000)  # Update every second
+        
+    def update_quota_countdown(self):
+        """Update quota countdown display"""
+        if not self.quota_end_time:
+            return
+            
+        now = datetime.now()
+        if now >= self.quota_end_time:
+            # Countdown finished
+            self.quota_countdown_timer.stop()
+            self.quota_countdown_label.setText("Estado: Listo para continuar")
+            self.quota_countdown_label.setStyleSheet("color: green; font-weight: bold;")
+            self.add_log("✅ PERÍODO DE ESPERA COMPLETADO - Continuando con subidas")
+            return
+            
+        # Calculate remaining time
+        remaining = self.quota_end_time - now
+        hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        countdown_text = f"Reanudando en: {hours:02d}:{minutes:02d}:{seconds:02d}"
+        self.quota_countdown_label.setText(countdown_text)
+        self.quota_countdown_label.setStyleSheet("color: orange; font-weight: bold;")
+        
+    def log_upload_error(self, video_number, error_message):
+        """Log upload error"""
+        if self.youtube_mode:
+            self.add_log(f"❌ ERROR AL SUBIR VIDEO {video_number}")
+            self.add_log(f"   Error: {error_message}")
+        
+    def log_video_deleted(self, video_number, file_path):
+        """Log video file deletion"""
+        if self.youtube_mode:
+            self.add_log(f"🗑️ Archivo local eliminado: {file_path}")

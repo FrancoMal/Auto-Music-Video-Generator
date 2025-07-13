@@ -22,9 +22,10 @@ class VideoGenerationThread(QThread):
     video_completed = Signal(int, bool, str)  # video_number, success, output_path
     generation_completed = Signal(bool)  # success
     
-    def __init__(self, video_configs, parent=None):
+    def __init__(self, video_configs, parent=None, youtube_config=None):
         super().__init__(parent)
         self.video_configs = video_configs
+        self.youtube_config = youtube_config
         self.generator = None
         
     def run(self):
@@ -32,7 +33,8 @@ class VideoGenerationThread(QThread):
         try:
             # Create generator with progress callback
             self.generator = MultipleVideosGenerator(
-                progress_callback=self._progress_callback
+                progress_callback=self._progress_callback,
+                youtube_config=self.youtube_config
             )
             
             # Validate configurations
@@ -229,6 +231,11 @@ class MultipleVideosMainWindow(QMainWindow):
         self.generate_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; padding: 10px; }")
         button_layout.addWidget(self.generate_button)
         
+        self.generate_upload_button = QPushButton("Generar y Subir a YouTube")
+        self.generate_upload_button.clicked.connect(self.on_generate_upload_clicked)
+        self.generate_upload_button.setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; padding: 10px; }")
+        button_layout.addWidget(self.generate_upload_button)
+        
         close_button = QPushButton("Cerrar")
         close_button.clicked.connect(self.close)
         button_layout.addWidget(close_button)
@@ -361,6 +368,14 @@ class MultipleVideosMainWindow(QMainWindow):
             
     def on_generate_clicked(self):
         """Handle generate videos button click"""
+        self._start_generation(upload_to_youtube=False)
+        
+    def on_generate_upload_clicked(self):
+        """Handle generate and upload to YouTube button click"""
+        self._start_generation(upload_to_youtube=True)
+        
+    def _start_generation(self, upload_to_youtube=False):
+        """Start the generation process with optional YouTube upload"""
         try:
             # Get configurations
             video_configs = self.get_video_configurations()
@@ -369,28 +384,46 @@ class MultipleVideosMainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "No hay configuraciones de video válidas")
                 return
                 
+            # If YouTube upload, show configuration dialog first
+            if upload_to_youtube:
+                from gui_components.youtube_config_dialog import YouTubeConfigDialog
+                
+                from PySide6.QtWidgets import QDialog
+                youtube_dialog = YouTubeConfigDialog(len(video_configs), self)
+                if youtube_dialog.exec() != QDialog.Accepted:
+                    return
+                    
+                youtube_config = youtube_dialog.get_config()
+                if not youtube_config:
+                    return
+            else:
+                youtube_config = None
+                
             # Show confirmation dialog
             config_summary = self._get_configuration_summary(video_configs)
+            action_text = "generar y subir a YouTube" if upload_to_youtube else "generar"
             reply = QMessageBox.question(
                 self, 
                 "Confirmar Generación", 
-                f"¿Generar los siguientes videos?\n\n{config_summary}",
+                f"¿{action_text.capitalize()} los siguientes videos?\n\n{config_summary}",
                 QMessageBox.Yes | QMessageBox.No
             )
             
             if reply != QMessageBox.Yes:
                 return
                 
-            # Disable generate button during generation
+            # Disable buttons during generation
             self.generate_button.setEnabled(False)
-            self.generate_button.setText("Generando...")
+            self.generate_upload_button.setEnabled(False)
+            action_button = self.generate_upload_button if upload_to_youtube else self.generate_button
+            action_button.setText("Procesando...")
             
             # Show progress dialog
-            self.progress_dialog = ProgressDialog(len(video_configs), self)
+            self.progress_dialog = ProgressDialog(len(video_configs), self, youtube_mode=upload_to_youtube)
             self.progress_dialog.cancelRequested.connect(self.on_generation_cancelled)
             
             # Start generation thread
-            self.generation_thread = VideoGenerationThread(video_configs, self)
+            self.generation_thread = VideoGenerationThread(video_configs, self, youtube_config=youtube_config)
             self.generation_thread.progress_updated.connect(self.on_progress_updated)
             self.generation_thread.video_completed.connect(self.on_video_completed)
             self.generation_thread.generation_completed.connect(self.on_generation_completed)
@@ -402,8 +435,7 @@ class MultipleVideosMainWindow(QMainWindow):
             
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al preparar la generación: {str(e)}")
-            self.generate_button.setEnabled(True)
-            self.generate_button.setText("Generar Videos")
+            self._restore_buttons()
             
     def _get_configuration_summary(self, configs):
         """Get a summary of the video configurations"""
@@ -438,9 +470,7 @@ class MultipleVideosMainWindow(QMainWindow):
         if hasattr(self, 'progress_dialog') and self.progress_dialog:
             self.progress_dialog.complete_generation(success)
             
-        # Re-enable generate button
-        self.generate_button.setEnabled(True)
-        self.generate_button.setText("Generar Videos")
+        self._restore_buttons()
         
         if success:
             QMessageBox.information(
@@ -460,9 +490,14 @@ class MultipleVideosMainWindow(QMainWindow):
         if hasattr(self, 'generation_thread') and self.generation_thread:
             self.generation_thread.cancel_generation()
             
-        # Re-enable generate button
+        self._restore_buttons()
+        
+    def _restore_buttons(self):
+        """Restore buttons to their original state"""
         self.generate_button.setEnabled(True)
         self.generate_button.setText("Generar Videos")
+        self.generate_upload_button.setEnabled(True)
+        self.generate_upload_button.setText("Generar y Subir a YouTube")
 
 
 def main():
