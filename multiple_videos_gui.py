@@ -353,11 +353,14 @@ class MultipleVideosMainWindow(QMainWindow):
         try:
             configs = []
             for widget in self.video_widgets:
+                # Get complete configuration including greenscreen effects
+                widget_config = widget.get_config()
                 configs.append({
-                    'video_number': widget.video_number,
-                    'songs_count': widget.get_songs_count(),
-                    'color': widget.get_color(),
-                    'background_image': widget.get_background_image()
+                    'video_number': widget_config['video_number'],
+                    'songs_count': widget_config['songs_count'],
+                    'color': widget_config['color'],
+                    'background_image': widget_config['background_image'],
+                    'greenscreen_effects': widget_config.get('greenscreen_effects', [])
                 })
             
             repetitions = self.repetitions_spinbox.value()
@@ -446,7 +449,15 @@ class MultipleVideosMainWindow(QMainWindow):
             background = config.get('background_image', '')
             bg_name = os.path.basename(background) if background else 'Por defecto'
             
-            summary.append(f"Video {config['video_number']}: {songs_count} canciones, color {color}, fondo {bg_name}")
+            # Check for greenscreen effects
+            greenscreen_effects = config.get('greenscreen_effects', [])
+            effects_text = ""
+            if greenscreen_effects:
+                effects_count = len(greenscreen_effects)
+                effects_names = [effect.get('name', 'unnamed') for effect in greenscreen_effects]
+                effects_text = f", 🎬 {effects_count} efecto{'s' if effects_count > 1 else ''} ({', '.join(effects_names)})"
+            
+            summary.append(f"Video {config['video_number']}: {songs_count} canciones, color {color}, fondo {bg_name}{effects_text}")
             
         return "\n".join(summary)
         

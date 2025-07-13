@@ -4,10 +4,12 @@ Video configuration widget for individual video settings
 
 import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QComboBox, QSpinBox, QGroupBox, QListWidget)
+                             QComboBox, QSpinBox, QGroupBox, QListWidget, 
+                             QPushButton)
 from PySide6.QtCore import Qt, Signal
 
 from .image_preview_widget import ImagePreviewWidget
+from .greenscreen_effects_dialog import GreenschreenEffectsDialog
 
 
 class VideoConfigWidget(QWidget):
@@ -21,6 +23,7 @@ class VideoConfigWidget(QWidget):
         self.images_directory = images_directory
         self.available_colors = available_colors
         self.songs_list = []
+        self.greenscreen_effects = []  # List of selected greenscreen effects
         self.setup_ui()
         
     def setup_ui(self):
@@ -28,8 +31,8 @@ class VideoConfigWidget(QWidget):
         layout = QVBoxLayout(self)
         
         # Group box for this video
-        group_box = QGroupBox(f"Video {self.video_number}")
-        group_layout = QVBoxLayout(group_box)
+        self.group_box = QGroupBox(f"Video {self.video_number}")
+        group_layout = QVBoxLayout(self.group_box)
         
         # Top row: songs per video and color
         top_layout = QHBoxLayout()
@@ -65,10 +68,31 @@ class VideoConfigWidget(QWidget):
         
         group_layout.addLayout(top_layout)
         
-        # Middle row: Image preview
+        # Middle row: Image preview and Greenscreen Effects button
+        middle_layout = QHBoxLayout()
+        
+        # Image preview (takes most space)
         self.image_preview = ImagePreviewWidget(self.images_directory)
         self.image_preview.imageChanged.connect(self.on_config_changed)
-        group_layout.addWidget(self.image_preview)
+        middle_layout.addWidget(self.image_preview, stretch=3)
+        
+        # Greenscreen effects section
+        effects_layout = QVBoxLayout()
+        effects_layout.addWidget(QLabel("Efectos:"))
+        
+        self.greenscreen_button = QPushButton("Green Effects")
+        self.greenscreen_button.clicked.connect(self.open_greenscreen_dialog)
+        self.greenscreen_button.setMaximumWidth(120)
+        effects_layout.addWidget(self.greenscreen_button)
+        
+        self.effects_count_label = QLabel("0 efectos")
+        self.effects_count_label.setStyleSheet("color: #666; font-size: 11px;")
+        effects_layout.addWidget(self.effects_count_label)
+        
+        effects_layout.addStretch()
+        middle_layout.addLayout(effects_layout, stretch=1)
+        
+        group_layout.addLayout(middle_layout)
         
         # Bottom: Songs preview
         songs_label = QLabel("Canciones asignadas:")
@@ -82,7 +106,7 @@ class VideoConfigWidget(QWidget):
         self.repetitions_label = QLabel("Reproducciones: 0")
         group_layout.addWidget(self.repetitions_label)
         
-        layout.addWidget(group_box)
+        layout.addWidget(self.group_box)
         
     def get_songs_count(self):
         """Get the number of songs for this video"""
@@ -150,6 +174,47 @@ class VideoConfigWidget(QWidget):
         """Get the list of assigned songs"""
         return self.songs_list
     
+    def open_greenscreen_dialog(self):
+        """Open the greenscreen effects selection dialog"""
+        dialog = GreenschreenEffectsDialog(self, self.greenscreen_effects)
+        dialog.effects_changed.connect(self.on_effects_changed)
+        dialog.exec()
+    
+    def on_effects_changed(self, effects):
+        """Handle changes in greenscreen effects"""
+        self.greenscreen_effects = effects
+        self.update_effects_display()
+        self.on_config_changed()
+    
+    def update_effects_display(self):
+        """Update the display of selected effects"""
+        count = len(self.greenscreen_effects)
+        if count == 0:
+            self.effects_count_label.setText("0 efectos")
+            self.greenscreen_button.setStyleSheet("")
+            self.greenscreen_button.setText("Green Effects")
+            # Reset group box style
+            self.group_box.setTitle(f"Video {self.video_number}")
+            self.group_box.setStyleSheet("")
+        else:
+            effect_names = [effect.get('name', 'unnamed') for effect in self.greenscreen_effects]
+            self.effects_count_label.setText(f"🎬 {count} efecto{'s' if count > 1 else ''}")
+            self.effects_count_label.setToolTip(f"Efectos: {', '.join(effect_names)}")
+            self.greenscreen_button.setStyleSheet("background-color: #e6ffe6; border: 2px solid #4CAF50; font-weight: bold;")
+            self.greenscreen_button.setText("✅ Effects ON")
+            # Highlight group box when effects are active
+            self.group_box.setTitle(f"🎬 Video {self.video_number} (con efectos)")
+            self.group_box.setStyleSheet("QGroupBox::title { color: #4CAF50; font-weight: bold; }")
+    
+    def get_greenscreen_effects(self):
+        """Get the list of selected greenscreen effects"""
+        return self.greenscreen_effects
+    
+    def set_greenscreen_effects(self, effects):
+        """Set the greenscreen effects"""
+        self.greenscreen_effects = effects
+        self.update_effects_display()
+    
     def on_config_changed(self):
         """Handle configuration changes"""
         self.configChanged.emit()
@@ -162,5 +227,6 @@ class VideoConfigWidget(QWidget):
             'repetitions': self.get_repetitions(),
             'color': self.get_color(),
             'background_image': self.get_background_image(),
-            'songs': self.get_songs_list()
+            'songs': self.get_songs_list(),
+            'greenscreen_effects': self.get_greenscreen_effects()
         }

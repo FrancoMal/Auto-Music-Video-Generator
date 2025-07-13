@@ -28,6 +28,13 @@ A complete and optimized application for creating spectacular music videos with 
 - **Modern Codec**: H.264 with GPU acceleration
 - **Optimized Size**: Perfect quality/size balance
 
+### ✨ **Greenscreen Effects**
+- **Multiple Formats**: MP4 videos and PNG images with transparency
+- **Priority System**: Layer multiple effects with configurable order
+- **Real-Time Preview**: Adjust chroma key parameters with live preview
+- **Smart Defaults**: Optimized parameters for clean green removal
+- **Visual Feedback**: Clear GUI indicators when effects are active
+
 ## 📁 Project Structure
 
 ```
@@ -49,6 +56,10 @@ ACE-Proyect/
 │   │   └── ...
 │   ├── recursos/                      # 🖼️ Background image
 │   │   └── background.jpg             # Custom background image
+│   ├── greenscreen effects/           # ✨ Greenscreen effects
+│   │   ├── effect1.mp4                # MP4 video with green background
+│   │   ├── overlay.png                # PNG image with transparency
+│   │   └── ...                        # More effects
 │   ├── temp/                          # 📁 Temporary files (auto-cleanup)
 │   └── output/                        # 📹 Final videos
 │       ├── video_final.mp4            # Generated video
@@ -125,10 +136,16 @@ source .venv/bin/activate
 # 2. Place songs in the musica/ folder
 cp your_songs/*.mp3 musica/
 
-# 3. Run optimized version
+# 3. [Optional] Add greenscreen effects
+cp your_effects/*.mp4 "greenscreen effects/"
+
+# 4. Run GUI for advanced features (recommended)
+python multiple_videos_gui.py
+
+# OR run single video (basic)
 python main_optimized.py
 
-# 4. Find your video in output/video_final.mp4!
+# 5. Find your video in output/!
 ```
 
 ### 📝 Detailed Preparation
@@ -155,6 +172,18 @@ cp my_image.jpg recursos/background.jpg
 - **Resolution**: Any (automatically resized)
 - **If missing**: Default gradient background is generated
 
+#### 3. **Greenscreen Effects** ✨ (optional)
+```bash
+# Place effects in greenscreen effects/ directory
+cp my_effects/*.mp4 "greenscreen effects/"     # MP4 with green background
+cp my_overlays/*.png "greenscreen effects/"    # PNG with transparency
+```
+- **MP4 Videos**: Must have green background (RGB 0,255,0)
+- **PNG Images**: Support transparency (alpha channel)
+- **Resolution**: Any (automatically resized to 1920x1080)
+- **Multiple Effects**: Supported with priority ordering
+- **Real-Time Preview**: Available in GUI for parameter adjustment
+
 ### 🚀 Execution
 
 #### **Optimized Version** (Recommended)
@@ -167,6 +196,20 @@ python main_optimized.py --verbose                    # More details
 python main_optimized.py --background my_image.jpg    # Custom image
 python main_optimized.py --no-cleanup                 # Don't delete temp files
 ```
+
+#### **GUI Version** ✨ (Advanced Features)
+```bash
+# Multiple videos with individual configurations and greenscreen effects
+python multiple_videos_gui.py
+```
+
+**GUI Features:**
+- **Multiple Videos**: Generate several videos with different configurations
+- **Individual Settings**: Different songs, colors, backgrounds per video
+- **Greenscreen Effects**: Visual interface for adding and ordering effects
+- **Real-Time Preview**: Adjust chroma key parameters with live preview
+- **Visual Feedback**: Clear indicators when effects are active
+- **YouTube Integration**: Direct upload with scheduling support
 
 #### **Original Version** (Slower)
 ```bash

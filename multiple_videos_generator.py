@@ -189,11 +189,15 @@ class MultipleVideosGenerator:
             self._report_progress(video_number, 70, "Generando video con visualizador optimizado...")
             output_path = os.path.join(OUTPUT_DIR, f"video_{video_number}.mp4")
             
+            # Get greenscreen effects from config
+            greenscreen_effects = config.get('greenscreen_effects', [])
+            
             # Use the exact same method that works in main_optimized.py
             success = self.video_generator.create_simple_music_video(
                 combined_audio_path,
                 background_path,
-                output_path
+                output_path,
+                greenscreen_effects
             )
             
             if not success:

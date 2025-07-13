@@ -4,6 +4,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MUSICA_DIR = os.path.join(BASE_DIR, "musica")
 RECURSOS_DIR = os.path.join(BASE_DIR, "recursos")
+GREENSCREEN_DIR = os.path.join(BASE_DIR, "greenscreen effects")
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
@@ -96,4 +97,16 @@ VISUALIZER_OPTIMIZED_CONFIG = {
     "mirror_effect": True,  # Horizontal mirror effect / Efecto espejo horizontal
     "opacity": 1.0,  # Visualizer opacity / Opacidad del visualizador (0.0 a 1.0)
     "scale": 1.0  # Visualizer scale / Escala del visualizador
+}
+
+# Greenscreen effects configurations / Configuraciones de efectos greenscreen
+GREENSCREEN_CONFIG = {
+    "enabled": True,
+    "directory": GREENSCREEN_DIR,
+    "color_key": "#00FF00",  # Standard green RGB(0,255,0) / Verde estándar
+    "supported_formats": ['.mp4', '.png'],
+    "default_opacity": 1.0,
+    "loop_videos": True,
+    "tolerance": 0.25,  # Color tolerance for keying / Tolerancia de color para keying (0.25 = más agresivo)
+    "similarity": 0.5  # Color similarity for better keying / Similitud de color para mejor keying (0.5 = muy permisivo)
 }

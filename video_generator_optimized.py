@@ -3,7 +3,7 @@ import logging
 import subprocess
 import json
 import numpy as np
-from config import VIDEO_CONFIG, FILES_CONFIG, CHROMA_CONFIG, VISUALIZER_OPTIMIZED_CONFIG
+from config import VIDEO_CONFIG, FILES_CONFIG, CHROMA_CONFIG, VISUALIZER_OPTIMIZED_CONFIG, GREENSCREEN_CONFIG
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -234,38 +234,219 @@ class OptimizedVideoGenerator:
             logger.error(f"Error al generar video final optimizado: {e}")
             return False
     
-    def create_simple_music_video(self, audio_path, background_image_path, output_path):
+    def get_available_greenscreen_effects(self):
+        """Get list of available greenscreen effects"""
+        effects = []
+        if not os.path.exists(GREENSCREEN_CONFIG['directory']):
+            return effects
+        
+        for file in os.listdir(GREENSCREEN_CONFIG['directory']):
+            file_ext = os.path.splitext(file.lower())[1]
+            if file_ext in GREENSCREEN_CONFIG['supported_formats']:
+                effect_path = os.path.join(GREENSCREEN_CONFIG['directory'], file)
+                effects.append({
+                    'name': os.path.splitext(file)[0],
+                    'path': effect_path,
+                    'type': 'video' if file_ext == '.mp4' else 'image'
+                })
+        
+        return effects
+    
+    def build_greenscreen_filter(self, greenscreen_effects, base_input_count=2):
+        """Build FFmpeg filter for greenscreen effects with priority order"""
+        if not greenscreen_effects:
+            logger.debug("No greenscreen effects to process")
+            return "", []
+        
+        filter_parts = []
+        additional_inputs = []
+        input_index = base_input_count
+        
+        # Sort effects by priority (higher priority = rendered on top)
+        sorted_effects = sorted(greenscreen_effects, key=lambda x: x.get('priority', 0))
+        logger.info(f"Processing {len(sorted_effects)} greenscreen effects")
+        
+        for i, effect in enumerate(sorted_effects):
+            effect_path = effect['path']
+            effect_type = effect['type']
+            effect_name = effect.get('name', f'effect_{i}')
+            
+            # Verify effect file exists
+            if not os.path.exists(effect_path):
+                logger.warning(f"Effect file not found: {effect_path}")
+                continue
+                
+            additional_inputs.append(effect_path)
+            logger.info(f"Adding effect {i+1}: {effect_name} ({effect_type}) - Input index {input_index}")
+            
+            if effect_type == 'video':
+                # For MP4 videos with greenscreen - apply colorkey and scale
+                filter_parts.append(
+                    f'[{input_index}:v]colorkey=green:'
+                    f'{GREENSCREEN_CONFIG["similarity"]}:'
+                    f'{GREENSCREEN_CONFIG["tolerance"]},'
+                    f'scale={self.width}:{self.height}[effect_{i}]'
+                )
+                logger.debug(f"Video effect filter: colorkey=green:{GREENSCREEN_CONFIG['similarity']}:{GREENSCREEN_CONFIG['tolerance']}")
+            else:
+                # For PNG images - just scale (transparency is preserved)
+                filter_parts.append(
+                    f'[{input_index}:v]scale={self.width}:{self.height}[effect_{i}]'
+                )
+                logger.debug(f"Image effect filter: scale={self.width}:{self.height}")
+            
+            input_index += 1
+        
+        filter_string = ';'.join(filter_parts)
+        logger.debug(f"Complete greenscreen filter: {filter_string}")
+        return filter_string, additional_inputs
+    
+    def build_overlay_chain(self, base_label, greenscreen_effects):
+        """Build overlay chain for greenscreen effects"""
+        if not greenscreen_effects:
+            return base_label
+        
+        # Sort effects by priority
+        sorted_effects = sorted(greenscreen_effects, key=lambda x: x.get('priority', 0))
+        
+        current_label = base_label
+        for i, effect in enumerate(sorted_effects):
+            next_label = f'overlay_{i}' if i < len(sorted_effects) - 1 else 'final'
+            overlay_filter = f'[{current_label}][effect_{i}]overlay[{next_label}]'
+            current_label = next_label
+        
+        return current_label, [f'[{current_label}][effect_{i}]overlay[{"overlay_" + str(i) if i < len(sorted_effects) - 1 else "final"}]' for i, effect in enumerate(sorted_effects)]
+    
+    def create_simple_music_video(self, audio_path, background_image_path, output_path, greenscreen_effects=None):
         """Create simple and fast music video / Crear video musical simple y rápido"""
         try:
             logger.info("=== CREATING SIMPLE MUSIC VIDEO / CREANDO VIDEO MUSICAL SIMPLE ===")
             
-            # Update visualizer color from current configuration / Actualizar color del visualizador desde configuración actual
-            self.viz_color = VISUALIZER_OPTIMIZED_CONFIG['color']
+            # Initialize greenscreen effects
+            if greenscreen_effects is None:
+                greenscreen_effects = []
             
-            # Build complex filter using configuration / Construir el filtro complejo usando configuración
+            logger.info(f"Greenscreen effects provided: {len(greenscreen_effects)}")
+            for i, effect in enumerate(greenscreen_effects):
+                logger.info(f"  Effect {i+1}: {effect.get('name', 'unnamed')} ({effect.get('type', 'unknown')})")
+            
+            # Update visualizer color from current configuration
+            self.viz_color = VISUALIZER_OPTIMIZED_CONFIG['color']
+            logger.info(f"Visualizer color: {self.viz_color}")
+            
+            # Build FFmpeg command inputs
+            cmd = [
+                'ffmpeg', '-y',
+                '-loop', '1', '-i', background_image_path,  # Input 0: background
+                '-i', audio_path                            # Input 1: audio
+            ]
+            
+            input_count = 2  # We have background + audio
+            
+            # Add greenscreen effect inputs and build their filters
+            greenscreen_filter = ""
+            if greenscreen_effects:
+                logger.info("Building greenscreen effects...")
+                greenscreen_filter_parts = []
+                
+                # Sort effects by priority (lower number = applied first, higher number = on top)
+                sorted_effects = sorted(greenscreen_effects, key=lambda x: x.get('priority', 0))
+                
+                for i, effect in enumerate(sorted_effects):
+                    effect_path = effect['path']
+                    effect_type = effect['type']
+                    effect_name = effect.get('name', f'effect_{i}')
+                    
+                    if not os.path.exists(effect_path):
+                        logger.warning(f"Effect file not found: {effect_path}")
+                        continue
+                    
+                    # Add input to command
+                    if effect_type == 'video':
+                        cmd.extend(['-stream_loop', '-1', '-i', effect_path])
+                        # For MP4 videos with greenscreen - use custom parameters if available
+                        similarity = effect.get('custom_similarity', GREENSCREEN_CONFIG["similarity"])
+                        tolerance = effect.get('custom_tolerance', GREENSCREEN_CONFIG["tolerance"])
+                        
+                        greenscreen_filter_parts.append(
+                            f'[{input_count}:v]colorkey=green:'
+                            f'{similarity}:'
+                            f'{tolerance},'
+                            f'scale={self.width}:{self.height}[effect_{i}]'
+                        )
+                        
+                        if 'custom_similarity' in effect or 'custom_tolerance' in effect:
+                            logger.info(f"Added video effect: {effect_name} with custom chroma (sim:{similarity:.2f}, tol:{tolerance:.2f}) as input {input_count}")
+                        else:
+                            logger.info(f"Added video effect: {effect_name} with default chroma as input {input_count}")
+                    else:
+                        cmd.extend(['-loop', '1', '-i', effect_path])
+                        # For PNG images (preserve transparency)
+                        greenscreen_filter_parts.append(
+                            f'[{input_count}:v]scale={self.width}:{self.height}[effect_{i}]'
+                        )
+                        logger.info(f"Added image effect: {effect_name} as input {input_count}")
+                    
+                    input_count += 1
+                
+                greenscreen_filter = ';'.join(greenscreen_filter_parts)
+                logger.debug(f"Greenscreen filter: {greenscreen_filter}")
+            
+            # Build base video with visualizer
+            logger.info("Building base video with visualizer...")
             if self.viz_mirror_effect:
-                # With horizontal mirror effect / Con efecto espejo horizontal
-                filter_complex = (
+                # With horizontal mirror effect
+                base_filter = (
                     f'[0:v]scale={self.width}:{self.height}[bg];'
                     f'[1:a]showwaves=s={self.viz_width//2}x{self.viz_height}:mode={self.viz_mode}:colors={self.viz_color}:rate={self.fps}[wave_half];'
                     f'[wave_half]split[wave_orig][wave_copy];'
                     f'[wave_copy]hflip[wave_mirror];'
                     f'[wave_orig][wave_mirror]hstack[wave_symmetric];'
-                    f'[bg][wave_symmetric]overlay=x=0:y=H-h-{self.viz_position_from_bottom}[v]'
+                    f'[bg][wave_symmetric]overlay=x=0:y=H-h-{self.viz_position_from_bottom}[base_with_viz]'
                 )
             else:
-                # Without mirror effect / Sin efecto espejo
-                filter_complex = (
+                # Without mirror effect
+                base_filter = (
                     f'[0:v]scale={self.width}:{self.height}[bg];'
                     f'[1:a]showwaves=s={self.viz_width}x{self.viz_height}:mode={self.viz_mode}:colors={self.viz_color}:rate={self.fps}[wave];'
-                    f'[bg][wave]overlay=x=0:y=H-h-{self.viz_position_from_bottom}[v]'
+                    f'[bg][wave]overlay=x=0:y=H-h-{self.viz_position_from_bottom}[base_with_viz]'
                 )
             
-            cmd = [
-                'ffmpeg', '-y',
-                '-loop', '1',
-                '-i', background_image_path,
-                '-i', audio_path,
+            # Combine everything
+            if greenscreen_effects and greenscreen_filter:
+                logger.info("Combining base video with greenscreen effects...")
+                
+                # Build overlay chain: base -> effect1 -> effect2 -> ... -> final
+                current_input = 'base_with_viz'
+                overlay_chain = []
+                
+                sorted_effects = sorted(greenscreen_effects, key=lambda x: x.get('priority', 0))
+                valid_effects = [i for i, effect in enumerate(sorted_effects) if os.path.exists(effect['path'])]
+                
+                for idx, effect_idx in enumerate(valid_effects):
+                    if idx == len(valid_effects) - 1:
+                        # Last effect outputs to final 'v'
+                        overlay_chain.append(f'[{current_input}][effect_{effect_idx}]overlay[v]')
+                    else:
+                        # Intermediate effects
+                        next_label = f'overlay_{idx}'
+                        overlay_chain.append(f'[{current_input}][effect_{effect_idx}]overlay[{next_label}]')
+                        current_input = next_label
+                
+                # Complete filter chain
+                if overlay_chain:
+                    filter_complex = base_filter + ';' + greenscreen_filter + ';' + ';'.join(overlay_chain)
+                    logger.info(f"Applied {len(overlay_chain)} overlay operations")
+                else:
+                    filter_complex = base_filter.replace('[base_with_viz]', '[v]')
+                    logger.warning("No valid effects found, using base filter only")
+            else:
+                # No greenscreen effects
+                filter_complex = base_filter.replace('[base_with_viz]', '[v]')
+                logger.info("No greenscreen effects, using base filter only")
+            
+            # Complete FFmpeg command
+            cmd.extend([
                 '-filter_complex', filter_complex,
                 '-map', '[v]',
                 '-map', '1:a',
@@ -277,25 +458,37 @@ class OptimizedVideoGenerator:
                 '-shortest',
                 '-pix_fmt', 'yuv420p',
                 output_path
-            ]
+            ])
             
             if self.gpu_available:
                 cmd.extend(['-gpu', '0'])
             
-            logger.info("Running FFmpeg / Ejecutando FFmpeg...")
-            logger.debug(f"Command / Comando: {' '.join(cmd)}")
-            logger.debug(f"Complex filter / Filtro complejo: {filter_complex}")
+            # Log complete command for debugging
+            logger.info("Executing FFmpeg command...")
+            logger.debug(f"Complete filter: {filter_complex}")
+            cmd_str = ' '.join([f'"{arg}"' if ' ' in str(arg) else str(arg) for arg in cmd])
+            logger.debug(f"Command: {cmd_str}")
+            
+            # Execute FFmpeg
             result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode == 0:
-                logger.info(f"Music video created / Video musical creado: {output_path}")
+                logger.info(f"✅ Music video created successfully: {output_path}")
+                if os.path.exists(output_path):
+                    file_size = os.path.getsize(output_path) / (1024 * 1024)
+                    logger.info(f"Output file size: {file_size:.1f} MB")
                 return True
             else:
-                logger.error(f"FFmpeg error / Error en FFmpeg: {result.stderr}")
+                logger.error(f"❌ FFmpeg failed with return code {result.returncode}")
+                logger.error(f"FFmpeg stderr: {result.stderr}")
+                if result.stdout:
+                    logger.debug(f"FFmpeg stdout: {result.stdout}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Error al crear video musical: {e}")
+            logger.error(f"❌ Exception in create_simple_music_video: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
 if __name__ == "__main__":

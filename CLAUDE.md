@@ -52,6 +52,15 @@ python test_quick_video.py
 
 # Test complete multiple videos workflow
 python test_complete_fix.py
+
+# Test greenscreen effects functionality
+python test_fixed_greenscreen.py
+
+# Test MP4 chroma key parameters
+python test_mp4_chroma.py
+
+# Test GUI greenscreen integration
+python test_gui_greenscreen.py
 ```
 
 ## Architecture Overview
@@ -71,9 +80,9 @@ This is a Python-based music video generator that creates visualized videos from
    - Generates timing descriptions for each track
 
 3. **Video Generation**:
-   - `video_generator_optimized.py` - GPU-accelerated using FFmpeg with NVENC
+   - `video_generator_optimized.py` - GPU-accelerated using FFmpeg with NVENC and greenscreen support
    - `video_generator.py` - Original OpenCV-based implementation
-   - Creates 1920x1080 @ 30fps videos with integrated audio visualizer
+   - Creates 1920x1080 @ 30fps videos with integrated audio visualizer and effects
 
 4. **Visualizer** (`visualizer_transparent.py`):
    - Creates audio-reactive visualizations using chroma key
@@ -83,13 +92,21 @@ This is a Python-based music video generator that creates visualized videos from
 5. **Configuration** (`config.py`):
    - Centralized configuration for all components
    - Video settings, visualizer options, file paths, processing options
+   - Greenscreen effects configuration with optimized chroma parameters
 
 6. **Multiple Videos System**:
    - `multiple_videos_generator.py` - Logic for generating multiple videos with individual configurations
    - `gui_components/` - Reusable GUI components (video config widgets, progress dialogs, image previews)
-   - Supports individual repetitions, colors, and background images per video
+   - Supports individual repetitions, colors, background images, and greenscreen effects per video
 
-7. **YouTube Upload Integration**:
+7. **Greenscreen Effects System**:
+   - `gui_components/greenscreen_effects_dialog.py` - Interface for selecting and ordering effects
+   - `gui_components/chroma_preview_dialog.py` - Real-time chroma key parameter adjustment
+   - Supports MP4 videos (with green background) and PNG images (with transparency)
+   - Priority-based layering system with visual feedback
+   - Optimized parameters for clean green removal
+
+8. **YouTube Upload Integration**:
    - `youtube_uploader.py` - YouTube API wrapper with quota management and mock mode for testing
    - `auth.py` - OAuth2 authentication for YouTube API
    - `gui_components/youtube_config_dialog.py` - Configuration dialog with scheduling support
@@ -107,9 +124,10 @@ This is a Python-based music video generator that creates visualized videos from
 
 **Multiple Videos Mode:**
 1. Audio files assigned per video with individual repetitions
-2. Each video gets unique songs, colors, and background images
+2. Each video gets unique songs, colors, background images, and greenscreen effects
 3. Each video processed independently with OptimizedVideoGenerator.create_simple_music_video()
 4. Multiple MP4 files generated in `output/` (video_1.mp4, video_2.mp4, etc.)
+5. Greenscreen effects applied per video configuration with custom parameters
 
 **Multiple Videos + YouTube Mode:**
 
@@ -146,6 +164,7 @@ This is a Python-based music video generator that creates visualized videos from
 ```
 musica/          # Input audio files (MP3, WAV, FLAC, M4A, OGG)
 recursos/        # Background images (PNG, JPG, JPEG)
+greenscreen effects/  # Greenscreen effects (MP4 videos, PNG images)
 temp/            # Temporary processing files (auto-cleaned)
 output/          # Final videos and logs
   ├── video_final.mp4        # Single video mode output
@@ -159,10 +178,12 @@ output/          # Final videos and logs
   ├── youtube_uploads.log  # YouTube upload logs (text format)
   └── youtube_uploads_detailed.json  # Detailed upload logs (JSON format)
 gui_components/  # GUI components for multiple videos interface
-  ├── video_config_widget.py     # Individual video configuration widget
-  ├── progress_dialog.py         # Progress tracking with logs and time estimation
-  ├── image_preview_widget.py    # Background image selection with preview
-  └── youtube_config_dialog.py   # YouTube upload configuration dialog
+  ├── video_config_widget.py         # Individual video configuration widget
+  ├── progress_dialog.py             # Progress tracking with logs and time estimation
+  ├── image_preview_widget.py        # Background image selection with preview
+  ├── youtube_config_dialog.py       # YouTube upload configuration dialog
+  ├── greenscreen_effects_dialog.py  # Greenscreen effects selection and ordering
+  └── chroma_preview_dialog.py       # Chroma key parameter adjustment with preview
 client_secret.json  # YouTube API credentials (user must provide)
 token.pickle        # YouTube authentication token (auto-generated)
 auth.py            # YouTube OAuth2 authentication
@@ -234,11 +255,12 @@ The system creates detailed logs of all uploads:
 ### Key Features
 
 - **GUI Interface**: Intuitive PySide6-based interface for configuring multiple videos
-- **Individual Configuration**: Each video can have different songs, repetitions, colors, and background images
+- **Individual Configuration**: Each video can have different songs, repetitions, colors, background images, and greenscreen effects
 - **Flexible Repetitions**: 0 repetitions (play once) to N repetitions per video
 - **Auto Song Assignment**: Automatic distribution of songs from `musica/` directory in alphabetical order
 - **Real-time Progress**: Live progress tracking with time estimation and detailed logs
 - **GPU Accelerated**: Uses the same optimized `create_simple_music_video()` method as `main_optimized.py`
+- **Greenscreen Effects**: Full support for MP4 videos and PNG images with priority-based layering and real-time preview
 
 ### Multiple Videos Workflow
 
@@ -249,9 +271,15 @@ The system creates detailed logs of all uploads:
    - Individual repetitions (overrides global setting)
    - Visualizer color (red, cyan, white, yellow, green, blue, magenta, orange, pink)
    - Background image (with preview)
-4. **Preview Assignment**: Interface shows which songs are assigned to each video
-5. **Generate**: Click "Generar Videos" to start batch processing
-6. **Monitor Progress**: Real-time progress dialog with logs and time estimation
+   - Greenscreen effects (MP4/PNG with priority ordering and chroma adjustment)
+4. **Greenscreen Effects**: Click "Green Effects" button to:
+   - Select effects from `greenscreen effects/` directory
+   - Order effects by priority (drag-and-drop)
+   - Fine-tune chroma parameters with real-time preview (for MP4 videos)
+   - Visual indicators show when effects are active (✅ Effects ON)
+5. **Preview Assignment**: Interface shows which songs are assigned to each video
+6. **Generate**: Click "Generar Videos" to start batch processing with effects
+7. **Monitor Progress**: Real-time progress dialog with logs and time estimation
 
 ### Critical Implementation Details
 
@@ -275,4 +303,69 @@ python test_quick_video.py
 
 # Test complete multiple videos workflow
 python test_complete_fix.py
+```
+
+## Greenscreen Effects System
+
+### Overview
+
+The system supports advanced greenscreen effects that can be applied to any video, allowing for professional-quality overlays and visual enhancements.
+
+### Supported Formats
+
+- **MP4 Videos**: Videos with green background (RGB 0,255,0) that will be removed via chroma keying
+- **PNG Images**: Images with transparency that will be overlaid directly
+
+### Key Features
+
+- **Priority-Based Layering**: Multiple effects can be applied with configurable priority order
+- **Real-Time Preview**: Chroma key parameters can be adjusted with live preview for MP4 videos
+- **Optimized Parameters**: Default settings tuned for clean green removal (similarity=0.5, tolerance=0.25)
+- **Visual Feedback**: Clear indicators in GUI when effects are active
+- **GPU Accelerated**: Effects processing uses hardware acceleration when available
+
+### Directory Structure
+
+```
+greenscreen effects/
+├── effect1.mp4         # Video with green background
+├── overlay.png         # PNG with transparency  
+├── particles.mp4       # Another video effect
+└── logo.png           # Static overlay
+```
+
+### Usage Workflow
+
+1. **Add Effects**: Place MP4/PNG files in `greenscreen effects/` directory
+2. **Open GUI**: Launch `python multiple_videos_gui.py`
+3. **Select Effects**: Click "Green Effects" button on any video
+4. **Configure**: 
+   - Drag effects from Available to Selected
+   - Order by priority (bottom to top)
+   - For MP4: Click "Preview Chroma" to adjust parameters
+5. **Apply**: Effects show as "✅ Effects ON" with visual indicators
+6. **Generate**: Videos will include effects in final output
+
+### Chroma Key Parameters
+
+For MP4 videos with green backgrounds:
+
+- **Similarity**: How similar colors to green are removed (0.1-0.6)
+- **Tolerance**: Edge smoothness and blending (0.01-0.3)
+- **Presets**: Strict, Normal, Loose, Optimal (recommended)
+
+### Visual Layer Order
+
+```
+Final Video Output
+       ↑
+Effect N (Priority N - Top)
+       ↑  
+Effect 2 (Priority 2)
+       ↑
+Effect 1 (Priority 1 - Bottom)
+       ↑
+Audio Visualizer (Waves)
+       ↑
+Background Image
 ```
