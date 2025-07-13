@@ -239,6 +239,9 @@ class OptimizedVideoGenerator:
         try:
             logger.info("=== CREATING SIMPLE MUSIC VIDEO / CREANDO VIDEO MUSICAL SIMPLE ===")
             
+            # Update visualizer color from current configuration / Actualizar color del visualizador desde configuración actual
+            self.viz_color = VISUALIZER_OPTIMIZED_CONFIG['color']
+            
             # Build complex filter using configuration / Construir el filtro complejo usando configuración
             if self.viz_mirror_effect:
                 # With horizontal mirror effect / Con efecto espejo horizontal
