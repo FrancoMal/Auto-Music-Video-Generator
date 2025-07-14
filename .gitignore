@@ -154,6 +154,11 @@ youtube_uploads.log
 youtube_uploads_detailed.json
 scheduled_uploads.log
 
+# Media directories (user content)
+musica/
+recursos/
+greenscreen\ effects/
+
 # Temporary files and screenshots  
 *screenshot*.png
 *Google_AI_Studio*.png
