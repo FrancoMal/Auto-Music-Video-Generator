@@ -82,21 +82,21 @@ LOGGING_CONFIG = {
 # Configuraciones de chroma key
 CHROMA_CONFIG = {
     "lower_green": (40, 40, 40),
-    "upper_green": (80, 255, 255),
-    "blur_radius": 3,
-    "dilate_kernel": 3
+    "upper_green": (70, 255, 255),
+    "blur_radius": 2,
+    "dilate_kernel": 2
 }
 
 # Optimized visualizer configurations / Configuraciones del visualizador optimizado
 VISUALIZER_OPTIMIZED_CONFIG = {
     "width": 1920,
     "height": 200,
-    "position_from_bottom": 50,
+    "position_from_bottom": 60,
     "color": "red",  # Available colors / Colores disponibles: red, cyan, white, yellow, green, blue, magenta, orange, pink
-    "mode": "cline",  # Visualization modes / Modos de visualización: cline, line, point
+    "mode": "line",  # Visualization modes / Modos de visualización: cline, line, point
     "mirror_effect": True,  # Horizontal mirror effect / Efecto espejo horizontal
     "opacity": 1.0,  # Visualizer opacity / Opacidad del visualizador (0.0 a 1.0)
-    "scale": 1.0  # Visualizer scale / Escala del visualizador
+    "scale": 2.0  # Visualizer scale / Escala del visualizador
 }
 
 # Greenscreen effects configurations / Configuraciones de efectos greenscreen

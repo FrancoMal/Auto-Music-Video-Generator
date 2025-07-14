@@ -22,7 +22,7 @@ from config import (
 class MultipleVideosGenerator:
     """Generator for creating multiple videos with different configurations"""
     
-    def __init__(self, progress_callback=None, youtube_config=None):
+    def __init__(self, progress_callback=None, youtube_config=None, individual_metadata=None):
         """
         Initialize the multiple videos generator
         
@@ -30,15 +30,17 @@ class MultipleVideosGenerator:
             progress_callback: Function to call with progress updates
                               Should accept (video_number, progress_percent, message)
             youtube_config: Optional YouTube configuration for upload
+            individual_metadata: Optional list of individual metadata for each video
         """
         self.progress_callback = progress_callback
         self.youtube_config = youtube_config
+        self.individual_metadata = individual_metadata or []
         self.audio_processor = AudioProcessor()
         self.video_generator = OptimizedVideoGenerator()
         self.cancelled = False
         
         # YouTube uploader (if needed)
-        self.youtube_uploader = youtube_config['uploader'] if youtube_config else None
+        self.youtube_uploader = youtube_config.get('uploader') if youtube_config else None
         
         # Setup logging
         self.logger = self._setup_logging()
@@ -263,15 +265,15 @@ class MultipleVideosGenerator:
             self._report_progress(video_number, 85, "Subiendo a YouTube...")
             self._update_upload_progress(video_number, 'uploading')
             
-            # Generate title with sequence number
-            title = self.youtube_config['title_base'].replace('{}', str(video_number))
+            # Get metadata for this video (individual or global)
+            metadata = self._get_video_metadata(video_number)
             
             success, video_id, error_msg = self.youtube_uploader.upload_video(
                 video_path=video_path,
-                title=title,
-                description=self.youtube_config['description'],
-                tags=self.youtube_config['tags'],
-                category_id=self.youtube_config['category_id'],
+                title=metadata['title'],
+                description=metadata['description'],
+                tags=metadata['tags'],
+                category_id=metadata['category_id'],
                 privacy_status=self.youtube_config['privacy_status']
             )
             
@@ -347,12 +349,15 @@ class MultipleVideosGenerator:
             self._report_progress(video_number, 85, f"Subiendo a YouTube (programado para {schedule_item['date']} {schedule_item['time']})...")
             self._update_upload_progress(video_number, 'uploading')
             
+            # Get metadata for this video (individual or global)
+            metadata = self._get_video_metadata(video_number)
+            
             success, video_id, error_msg = self.youtube_uploader.upload_video(
                 video_path=video_path,
-                title=schedule_item['title'],
-                description=self.youtube_config['description'],
-                tags=self.youtube_config['tags'],
-                category_id=self.youtube_config['category_id'],
+                title=metadata['title'],
+                description=metadata['description'],
+                tags=metadata['tags'],
+                category_id=metadata['category_id'],
                 privacy_status="private",  # Must be private for scheduled publishing
                 publish_at=schedule_item['publish_at']
             )
@@ -419,7 +424,7 @@ class MultipleVideosGenerator:
             # Create log entry
             log_entry = {
                 'video_number': video_number,
-                'title': schedule_item['title'],
+                'title': metadata['title'],
                 'youtube_id': video_id,
                 'duration_minutes': duration,
                 'file_size_mb': round(file_size_mb, 2),
@@ -432,7 +437,7 @@ class MultipleVideosGenerator:
             log_file = os.path.join(OUTPUT_DIR, "youtube_uploads.log")
             with open(log_file, 'a', encoding='utf-8') as f:
                 f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - "
-                       f"Video {video_number}: {schedule_item['title']} - "
+                       f"Video {video_number}: {metadata['title']} - "
                        f"ID: {video_id} - Duration: {duration}min - "
                        f"Size: {file_size_mb:.1f}MB - "
                        f"Scheduled: {schedule_item['date']} {schedule_item['time']}\n")
@@ -589,6 +594,9 @@ class MultipleVideosGenerator:
             from audio_processor import AudioProcessor
             custom_processor = AudioProcessor()
             
+            # Disable AudioProcessor's own repetitions since GUI already applied them
+            custom_processor.repeat_count = 1  # 1 means "no additional repetitions"
+            
             # Override the get_audio_files method to return our specific songs
             def get_custom_audio_files(self=None):
                 return songs
@@ -634,44 +642,23 @@ class MultipleVideosGenerator:
         return background_image
         
     def _generate_description_file(self, songs, video_number):
-        """Generate description file for the video"""
-        desc_path = os.path.join(OUTPUT_DIR, f"video_{video_number}_descripcion.txt")
+        """Generate timestamps file for the video using AudioProcessor"""
+        timestamps_path = os.path.join(OUTPUT_DIR, f"video_{video_number}_timestamps.txt")
         
         try:
-            # Get unique songs and detect repetitions
-            unique_songs = []
-            song_counts = {}
+            # Use AudioProcessor to generate proper timestamps
+            audio_processor = AudioProcessor()
             
-            for song_path in songs:
-                song_name = os.path.basename(song_path)
-                if song_name not in song_counts:
-                    song_counts[song_name] = 0
-                    unique_songs.append(song_path)
-                song_counts[song_name] += 1
+            # Generate timestamps using the same method as single video
+            generated_path = audio_processor.generate_description_file(songs, timestamps_path)
             
-            # Calculate repetitions (assuming all songs have same count)
-            repetitions_count = max(song_counts.values()) if song_counts else 1
+            if generated_path:
+                self.logger.info(f"✅ Timestamps file generated: {timestamps_path}")
+            else:
+                self.logger.warning(f"Failed to generate timestamps file for video {video_number}")
             
-            with open(desc_path, 'w', encoding='utf-8') as f:
-                f.write(f"Descripción del Video {video_number}\n")
-                f.write("=" * 50 + "\n\n")
-                f.write(f"Fecha de generación: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Canciones únicas: {len(unique_songs)}\n")
-                f.write(f"Repeticiones: {repetitions_count - 1} (se reproduce {repetitions_count} veces cada canción)\n")
-                f.write(f"Total de reproducciones: {len(songs)}\n\n")
-                
-                f.write("Canciones únicas:\n")
-                for i, song_path in enumerate(unique_songs, 1):
-                    song_name = os.path.basename(song_path)
-                    f.write(f"{i:2d}. {song_name} (se reproduce {song_counts[song_name]} veces)\n")
-                    
-                f.write(f"\nSecuencia completa:\n")
-                for i, song_path in enumerate(songs, 1):
-                    song_name = os.path.basename(song_path)
-                    f.write(f"{i:2d}. {song_name}\n")
-                    
         except Exception as e:
-            self.logger.warning(f"Could not generate description file: {e}")
+            self.logger.warning(f"Could not generate timestamps file: {e}")
             
     def validate_configurations(self, video_configs):
         """
@@ -707,3 +694,86 @@ class MultipleVideosGenerator:
                 return False, f"Background image not found: {background}"
                 
         return True, "Configuration is valid"
+    
+    def _get_video_metadata(self, video_number):
+        """Get metadata for a specific video (individual or global)"""
+        # Check if we have individual metadata for this video
+        video_index = video_number - 1
+        if (self.individual_metadata and 
+            video_index < len(self.individual_metadata) and 
+            self.individual_metadata[video_index]):
+            
+            # Use individual metadata
+            metadata = self.individual_metadata[video_index].copy()
+            
+            # Ensure all required fields are present
+            if 'title' not in metadata or not metadata['title']:
+                metadata['title'] = self.youtube_config['title_base'].replace('{}', str(video_number))
+            if 'tags' not in metadata:
+                metadata['tags'] = self.youtube_config['tags']
+            if 'category_id' not in metadata:
+                metadata['category_id'] = self.youtube_config['category_id']
+            
+            # Add real timestamps to description if [timestamps] placeholder exists
+            if 'description' in metadata and '[timestamps]' in metadata['description']:
+                metadata['description'] = self._add_timestamps_to_description(metadata['description'], video_number)
+                
+            return metadata
+        else:
+            # Use global configuration
+            if self.youtube_config:
+                description = self.youtube_config['description']
+                # Add timestamps if placeholder exists
+                if '[timestamps]' in description:
+                    description = self._add_timestamps_to_description(description, video_number)
+                
+                return {
+                    'title': self.youtube_config['title_base'].replace('{}', str(video_number)),
+                    'description': description,
+                    'tags': self.youtube_config['tags'],
+                    'category_id': self.youtube_config['category_id']
+                }
+            else:
+                # Fallback when no YouTube config
+                return {
+                    'title': f'Video {video_number}',
+                    'description': 'Default description',
+                    'tags': 'default, tags',
+                    'category_id': '10'
+                }
+    
+    def _add_timestamps_to_description(self, description, video_number):
+        """Add real timestamps to description by reading timestamps file"""
+        timestamps_file = os.path.join(OUTPUT_DIR, f"video_{video_number}_timestamps.txt")
+        
+        if not os.path.exists(timestamps_file):
+            # If timestamps file doesn't exist, just remove the placeholder
+            return description.replace('[timestamps]', '(Los timestamps se añadirán automáticamente)')
+        
+        try:
+            with open(timestamps_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract just the timestamps lines
+            lines = content.split('\n')
+            timestamps = []
+            in_timestamps_section = False
+            
+            for line in lines:
+                if "=== TIEMPOS DE REPRODUCCIÓN ===" in line:
+                    in_timestamps_section = True
+                    continue
+                elif "=== DURACIÓN TOTAL ===" in line:
+                    break
+                elif in_timestamps_section and line.strip() and not line.startswith("==="):
+                    timestamps.append(line.strip())
+            
+            if timestamps:
+                timestamps_text = '\n'.join(timestamps)
+                return description.replace('[timestamps]', timestamps_text)
+            else:
+                return description.replace('[timestamps]', '(No se encontraron timestamps)')
+                
+        except Exception as e:
+            self.logger.warning(f"Could not read timestamps for video {video_number}: {e}")
+            return description.replace('[timestamps]', '(Error al leer timestamps)')

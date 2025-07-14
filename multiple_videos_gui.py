@@ -22,10 +22,11 @@ class VideoGenerationThread(QThread):
     video_completed = Signal(int, bool, str)  # video_number, success, output_path
     generation_completed = Signal(bool)  # success
     
-    def __init__(self, video_configs, parent=None, youtube_config=None):
+    def __init__(self, video_configs, parent=None, youtube_config=None, individual_metadata=None):
         super().__init__(parent)
         self.video_configs = video_configs
         self.youtube_config = youtube_config
+        self.individual_metadata = individual_metadata
         self.generator = None
         
     def run(self):
@@ -34,7 +35,8 @@ class VideoGenerationThread(QThread):
             # Create generator with progress callback
             self.generator = MultipleVideosGenerator(
                 progress_callback=self._progress_callback,
-                youtube_config=self.youtube_config
+                youtube_config=self.youtube_config,
+                individual_metadata=self.individual_metadata
             )
             
             # Validate configurations
@@ -268,10 +270,10 @@ class MultipleVideosMainWindow(QMainWindow):
         
     def on_global_repetitions_changed(self, repetitions):
         """Handle change in global repetitions"""
-        # Update all videos that don't have individual repetitions set
+        # Update all videos that don't have individual repetitions manually set
         for widget in self.video_widgets:
-            if widget.get_repetitions() == 0:  # Assuming 0 means "use global"
-                widget.set_repetitions(repetitions)
+            if not widget.has_manual_repetitions():  # Only update if not manually set
+                widget.set_repetitions(repetitions, manual=False)  # Don't mark as manual
         self.update_song_assignments()
         
     def update_video_widgets(self):
@@ -295,6 +297,10 @@ class MultipleVideosMainWindow(QMainWindow):
             # Set default color (cycle through available colors)
             default_color = self.available_colors[i % len(self.available_colors)]
             widget.set_color(default_color)
+            
+            # Set default repetitions from global (but don't mark as manual)
+            global_repetitions = self.repetitions_spinbox.value()
+            widget.set_repetitions(global_repetitions, manual=False)
             
             self.video_widgets.append(widget)
             self.videos_layout.addWidget(widget)
@@ -399,8 +405,12 @@ class MultipleVideosMainWindow(QMainWindow):
                 youtube_config = youtube_dialog.get_config()
                 if not youtube_config:
                     return
+                
+                # Get individual metadata if available
+                individual_metadata = youtube_dialog.get_individual_metadata()
             else:
                 youtube_config = None
+                individual_metadata = None
                 
             # Show confirmation dialog
             config_summary = self._get_configuration_summary(video_configs)
@@ -426,7 +436,7 @@ class MultipleVideosMainWindow(QMainWindow):
             self.progress_dialog.cancelRequested.connect(self.on_generation_cancelled)
             
             # Start generation thread
-            self.generation_thread = VideoGenerationThread(video_configs, self, youtube_config=youtube_config)
+            self.generation_thread = VideoGenerationThread(video_configs, self, youtube_config=youtube_config, individual_metadata=individual_metadata)
             self.generation_thread.progress_updated.connect(self.on_progress_updated)
             self.generation_thread.video_completed.connect(self.on_video_completed)
             self.generation_thread.generation_completed.connect(self.on_generation_completed)

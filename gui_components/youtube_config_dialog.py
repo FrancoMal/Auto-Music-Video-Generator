@@ -43,6 +43,7 @@ class YouTubeConfigDialog(QDialog):
         self.mock_mode = mock_mode
         self.uploader = YouTubeUploader(mock_mode=mock_mode)
         self.authenticated = False
+        self.individual_metadata = None
         self.logger = logging.getLogger(__name__)
         
         self.setup_ui()
@@ -167,6 +168,12 @@ class YouTubeConfigDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
         
+        self.preview_button = QPushButton("Vista Previa")
+        self.preview_button.clicked.connect(self.show_preview)
+        self.preview_button.setEnabled(False)
+        self.preview_button.setStyleSheet("QPushButton { background-color: #2196F3; color: white; font-weight: bold; }")
+        button_layout.addWidget(self.preview_button)
+        
         self.accept_button = QPushButton("Aceptar")
         self.accept_button.clicked.connect(self.accept_config)
         self.accept_button.setEnabled(False)
@@ -211,6 +218,7 @@ class YouTubeConfigDialog(QDialog):
             self.auth_status_label.setStyleSheet("color: green;")
             self.logout_button.setEnabled(True)
             self.accept_button.setEnabled(True)
+            self.preview_button.setEnabled(True)
             self.logger.info("YouTube authentication successful")
         else:
             self.authenticated = False
@@ -218,6 +226,7 @@ class YouTubeConfigDialog(QDialog):
             self.auth_status_label.setStyleSheet("color: red;")
             self.logout_button.setEnabled(False)
             self.accept_button.setEnabled(False)
+            self.preview_button.setEnabled(False)
             self.logger.error(f"YouTube authentication failed: {message}")
             
             # Show error dialog
@@ -236,6 +245,7 @@ class YouTubeConfigDialog(QDialog):
         self.auth_status_label.setStyleSheet("color: red;")
         self.logout_button.setEnabled(False)
         self.accept_button.setEnabled(False)
+        self.preview_button.setEnabled(False)
         self.logger.info("YouTube logout successful")
         
     def accept_config(self):
@@ -578,3 +588,27 @@ class YouTubeConfigDialog(QDialog):
             if not self.immediate_radio.isChecked():
                 self.immediate_radio.setChecked(True)
                 self.scheduling_group.setVisible(False)
+    
+    def show_preview(self):
+        """Show preview dialog for video metadata editing"""
+        from .video_metadata_preview_dialog import VideoMetadataPreviewDialog
+        
+        # Get current configuration
+        config = self.get_config()
+        
+        # Create and show preview dialog
+        preview_dialog = VideoMetadataPreviewDialog(
+            video_count=self.video_count,
+            youtube_config=config,
+            parent=self
+        )
+        
+        if preview_dialog.exec() == QDialog.Accepted:
+            # Store the individual metadata for later use
+            self.individual_metadata = preview_dialog.get_video_metadata()
+            # If user accepts from preview, we close this dialog too
+            self.accept()
+    
+    def get_individual_metadata(self):
+        """Get individual video metadata if available"""
+        return self.individual_metadata

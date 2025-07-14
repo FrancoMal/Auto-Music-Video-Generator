@@ -117,7 +117,7 @@ class AudioProcessor:
                 cycle = (i // len(audio_files)) + 1
                 position = (i % len(audio_files)) + 1
                 
-                description_lines.append(f"{time_str} - {song_name} [Ciclo {cycle}, Posición {position}]")
+                description_lines.append(f"{time_str} - {song_name}")
                 
                 current_time += duration
             

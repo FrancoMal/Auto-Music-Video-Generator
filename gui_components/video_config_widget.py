@@ -54,8 +54,11 @@ class VideoConfigWidget(QWidget):
         self.repetitions_spinbox.setMinimum(0)
         self.repetitions_spinbox.setMaximum(5)
         self.repetitions_spinbox.setValue(0)  # Default: no repetitions
-        self.repetitions_spinbox.valueChanged.connect(self.on_config_changed)
+        self.repetitions_spinbox.valueChanged.connect(self.on_repetitions_changed)
         top_layout.addWidget(self.repetitions_spinbox)
+        
+        # Track if repetitions have been manually set by user
+        self.repetitions_manually_set = False
         
         top_layout.addStretch()
         
@@ -130,9 +133,24 @@ class VideoConfigWidget(QWidget):
         """Get the number of repetitions for this video"""
         return self.repetitions_spinbox.value()
     
-    def set_repetitions(self, repetitions):
+    def set_repetitions(self, repetitions, manual=True):
         """Set the number of repetitions for this video"""
+        # Temporarily disconnect signal to avoid triggering on_repetitions_changed
+        self.repetitions_spinbox.valueChanged.disconnect(self.on_repetitions_changed)
         self.repetitions_spinbox.setValue(repetitions)
+        self.repetitions_spinbox.valueChanged.connect(self.on_repetitions_changed)
+        
+        if manual:
+            self.repetitions_manually_set = True
+    
+    def on_repetitions_changed(self, value):
+        """Handle repetitions change by user"""
+        self.repetitions_manually_set = True
+        self.on_config_changed()
+    
+    def has_manual_repetitions(self):
+        """Check if repetitions were manually set by user"""
+        return self.repetitions_manually_set
     
     def get_background_image(self):
         """Get the selected background image path"""
