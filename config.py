@@ -93,7 +93,7 @@ VISUALIZER_OPTIMIZED_CONFIG = {
     "height": 200,
     "position_from_bottom": 60,
     "color": "red",  # Available colors / Colores disponibles: red, cyan, white, yellow, green, blue, magenta, orange, pink
-    "mode": "line",  # Visualization modes / Modos de visualización: cline, line, point
+    "mode": "line",  # Visualization modes / Modos de visualización: cline, line
     "mirror_effect": True,  # Horizontal mirror effect / Efecto espejo horizontal
     "opacity": 1.0,  # Visualizer opacity / Opacidad del visualizador (0.0 a 1.0)
     "scale": 2.0  # Visualizer scale / Escala del visualizador
